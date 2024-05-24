@@ -1,11 +1,17 @@
 #' Function defined to enhance the usability for users on IDEs.
 #' @export
-f <- function(smoothing_var, model, sd.prior = NULL, boundary.prior = NULL, ...) {
+f <- function(smoothing_var, model = "iid", sd.prior = NULL, boundary.prior = NULL, initial_location = c("middle", "left", "right"), ...) {
   # Capture the full call
   mc <- match.call(expand.dots = TRUE)
   
   # Replace the first argument with the function name
   mc[[1]] <- as.name("f")
+  
+  # Ensure all default arguments are included
+  mc$model <- model
+  mc$sd.prior <- sd.prior
+  mc$boundary.prior <- boundary.prior
+  mc$initial_location <- initial_location[1]
   
   # Replace smoothing_var with its unevaluated form
   mc$smoothing_var <- substitute(smoothing_var)
@@ -18,45 +24,52 @@ parse_formula <- function(formula) {
   components <- as.list(attributes(terms(formula))$ variables)
   fixed_effects <- list()
   rand_effects <- list()
+  offset_effects <- list()
   # Index starts as 3 since index 1 represents "list" and
   # index 2 represents the response variable
   for (i in 3:length(components)) {
     if (startsWith(toString(components[[i]]), "f,")) {
       rand_effects[[length(rand_effects) + 1]] <- components[[i]]
-    } else {
+    } 
+    else if(startsWith(toString(components[[i]]), "offset,")){
+      offset_effects[[length(offset_effects) + 1]] <- components[[i]]
+    }
+    else {
       fixed_effects[[length(fixed_effects) + 1]] <- components[[i]]
     }
   }
-  return(list(response = components[[2]], fixed_effects = fixed_effects, rand_effects = rand_effects))
+  return(list(response = components[[2]], fixed_effects = fixed_effects, rand_effects = rand_effects, offset_effects = offset_effects))
 }
 
-# Create a class for IWP using S4
-setClass("IWP", slots = list(
+# Create a class for iwp using S4
+setClass("iwp", slots = list(
   response_var = "name", smoothing_var = "name", order = "numeric",
   knots = "numeric", observed_x = "numeric", sd.prior = "list",
+  psd.prior = "list",
   boundary.prior = "list", data = "data.frame", X = "matrix",
-  B = "matrix", P = "matrix", initial_location = "numeric"
+  B = "matrix", P = "matrix", initial_location = "ANY"
 ))
 
-# Create a class for sGP using S4
-setClass("sGP", slots = list(
+# Create a class for sgp using S4
+setClass("sgp", slots = list(
   response_var = "name", smoothing_var = "name", 
   a = "numeric", freq = "numeric", period = "numeric",
   m = "numeric", k = "numeric",
   knots = "numeric", observed_x = "numeric", sd.prior = "list",
+  psd.prior = "list",
   boundary.prior = "list", data = "data.frame", X = "matrix",
-  B = "matrix", P = "matrix", initial_location = "numeric", region = "numeric", 
+  B = "matrix", P = "matrix", initial_location = "ANY", region = "numeric", 
   accuracy = "numeric", boundary = "logical"
 ))
 
-# Create a class for IID using S4
-setClass("IID", slots = list(
+# Create a class for iid using S4
+setClass("iid", slots = list(
   response_var = "name", smoothing_var = "name", sd.prior = "list",
   data = "data.frame", B = "matrix", P = "matrix"
 ))
 
-# Create a class for Customized using S4
-setClass("Customized", slots = list(
+# Create a class for customized using S4
+setClass("customized", slots = list(
   response_var = "name", smoothing_var = "name", sd.prior = "list",
   data = "data.frame", B = "matrix", P = "matrix",
   compute_B = "function", compute_P = "function"
@@ -64,9 +77,14 @@ setClass("Customized", slots = list(
 
 #' @import Matrix
 #' @importClassesFrom Matrix dgCMatrix
-Compute_Q_sB <- function(a,k,region, accuracy = 0.01, boundary = TRUE){
+Compute_Q_sB <- function(a,k,region, accuracy = 5000, boundary = TRUE){
   ss <- function(M) {Matrix::forceSymmetric(M + Matrix::t(M))}
-  x <- seq(min(region),max(region),by = accuracy)
+  if((accuracy %% 1) == 0){
+    x <- seq(min(region),max(region), length.out = accuracy)
+  }
+  else{
+    x <- seq(min(region),max(region), by = accuracy)
+  }
   if(boundary == TRUE){
     B_basis <- suppressWarnings(fda::create.bspline.basis(rangeval = c(min(region),max(region)),
                                                           nbasis = k,
@@ -200,6 +218,7 @@ Compute_B_sB_helper <- function(refined_x, a, k, m, region, boundary = TRUE, ini
     initial_location <- min(refined_x)
   }
   refined_x <- refined_x - initial_location
+  region <- region - initial_location
   B <- NULL
   for (i in 1:m) {
     B <- cbind(B, Compute_B_sB(x = refined_x, a = (i*a), region = region, k = k, boundary = boundary))
@@ -211,25 +230,25 @@ Compute_B_sB_helper <- function(refined_x, a, k, m, region, boundary = TRUE, ini
 setGeneric("compute_B", function(object) {
   standardGeneric("compute_B")
 })
-setMethod("compute_B", signature = "IID", function(object) {
+setMethod("compute_B", signature = "iid", function(object) {
   smoothing_var <- object@smoothing_var
   x <- as.factor((object@data)[[smoothing_var]])
   B <- model.matrix(~ -1 + x)
   B
 })
-setMethod("compute_B", signature = "Customized", function(object) {
+setMethod("compute_B", signature = "customized", function(object) {
   smoothing_var <- object@smoothing_var
   object@compute_B((object@data)[[smoothing_var]])
 })
-setMethod("compute_B", signature = "sGP", function(object) {
+setMethod("compute_B", signature = "sgp", function(object) {
   smoothing_var <- object@smoothing_var
   a <- object@a
   k <- object@k
   m <- object@m
-  region <- object@region
+  initial_location <- object@initial_location
+  region <- object@region - initial_location
   accuracy <- object@accuracy
   boundary <- object@boundary
-  initial_location <- object@initial_location
   refined_x <- (object@data)[[smoothing_var]] - initial_location
   B <- NULL
   for (i in 1:m) {
@@ -242,25 +261,25 @@ setMethod("compute_B", signature = "sGP", function(object) {
 setGeneric("compute_P", function(object) {
   standardGeneric("compute_P")
 })
-setMethod("compute_P", signature = "IID", function(object) {
+setMethod("compute_P", signature = "iid", function(object) {
   smoothing_var <- object@smoothing_var
   x <- (object@data)[[smoothing_var]]
   num_factor <- length(unique(x))
   diag(nrow = num_factor, ncol = num_factor)
 })
-setMethod("compute_P", signature = "Customized", function(object) {
+setMethod("compute_P", signature = "customized", function(object) {
   x <- (object@data)[[object@smoothing_var]]
   object@compute_P(x)
 })
-setMethod("compute_P", signature = "sGP", function(object) {
+setMethod("compute_P", signature = "sgp", function(object) {
   smoothing_var <- object@smoothing_var
+  initial_location <- object@initial_location
   a <- object@a
   k <- object@k
   m <- object@m
-  region <- object@region
+  region <- object@region - initial_location
   accuracy <- object@accuracy
   boundary <- object@boundary
-  initial_location <- object@initial_location
   refined_x <- (object@data)[[smoothing_var]] - initial_location
   Q <- Compute_Q_sB(a = a, k = k, region = region, accuracy = accuracy)
   if(m >= 2){
@@ -275,20 +294,20 @@ setMethod("compute_P", signature = "sGP", function(object) {
 setGeneric("local_poly", function(object) {
   standardGeneric("local_poly")
 })
-setMethod("local_poly", signature = "IWP", function(object) {
+setMethod("local_poly", signature = "iwp", function(object) {
   knots <- object@knots
   initial_location <- object@initial_location
   smoothing_var <- object@smoothing_var
   refined_x <- (object@data)[[smoothing_var]] - initial_location
   p <- object@order
-  D <- local_poly_helper(knots, refined_x, p)
+  D <- local_poly_helper(knots = knots, refined_x = refined_x, p = p, neg_sign_order = 0)
   D # Local poly design matrix
 })
 
 setGeneric("global_poly", function(object) {
   standardGeneric("global_poly")
 })
-setMethod("global_poly", signature = "IWP", function(object) {
+setMethod("global_poly", signature = "iwp", function(object) {
   smoothing_var <- object@smoothing_var
   x <- (object@data)[[smoothing_var]] - object@initial_location
   p <- object@order
@@ -298,7 +317,7 @@ setMethod("global_poly", signature = "IWP", function(object) {
   }
   result
 })
-setMethod("global_poly", signature = "sGP", function(object) {
+setMethod("global_poly", signature = "sgp", function(object) {
   smoothing_var <- object@smoothing_var
   a <- object@a
   m <- object@m
@@ -322,7 +341,7 @@ setMethod("global_poly", signature = "sGP", function(object) {
 setGeneric("compute_weights_precision", function(object) {
   standardGeneric("compute_weights_precision")
 })
-setMethod("compute_weights_precision", signature = "IWP", function(object) {
+setMethod("compute_weights_precision", signature = "iwp", function(object) {
   knots <- object@knots
   if (min(knots) >= 0) {
     as(diag(diff(knots)), "matrix")
@@ -342,6 +361,23 @@ setMethod("compute_weights_precision", signature = "IWP", function(object) {
     as(Matrix::bdiag(Precweights1, Precweights2), "matrix")
   }
 })
+
+#' Constructing the precision matrix given the knot sequence (helper)
+#'
+#' @param x A vector of knots used to construct the O-spline basis, first knot should be viewed as "0",
+#' the reference starting location. These k knots will define (k-1) basis function in total.
+#' @return A precision matrix of the corresponding basis function, should be diagonal matrix with
+#' size (k-1) by (k-1).
+#' @examples
+#' compute_weights_precision(x = c(0,0.2,0.4,0.6,0.8))
+#' @export
+compute_weights_precision_helper <- function(x){
+  d <- diff(x)
+  Precweights <- diag(d)
+  Precweights
+}
+
+
 
 get_local_poly <- function(knots, refined_x, p) {
   dif <- diff(knots)
@@ -369,13 +405,14 @@ get_local_poly <- function(knots, refined_x, p) {
 #' the reference starting location. These k knots will define (k-1) basis function in total.
 #' @param refined_x A vector of locations to evaluate the O-spline basis
 #' @param p An integer value indicates the order of smoothness
+#' @param neg_sign_order An integer value N such that D = ((-1)^N)*D for the splines at negative knots. Default is 0.
 #' @return A matrix with i,j component being the value of jth basis function
 #' value at ith element of refined_x, the ncol should equal to number of knots minus 1, and nrow
 #' should equal to the number of elements in refined_x.
 #' @examples
 #' local_poly(knots = c(0, 0.2, 0.4, 0.6, 0.8), refined_x = seq(0, 0.8, by = 0.1), p = 2)
 #' @export
-local_poly_helper <- function(knots, refined_x, p = 2) {
+local_poly_helper <- function(knots, refined_x, p = 2, neg_sign_order = 0) {
   if (min(knots) >= 0) {
     # The case of all-positive knots
     D <- get_local_poly(knots, refined_x, p)
@@ -384,12 +421,14 @@ local_poly_helper <- function(knots, refined_x, p = 2) {
     refined_x_neg <- ifelse(refined_x < 0, -refined_x, 0)
     knots_neg <- unique(sort(ifelse(knots < 0, -knots, 0)))
     D <- get_local_poly(knots_neg, refined_x_neg, p)
+    D <- D * ((-1)^neg_sign_order)
   } else {
     # Handle the negative part
     refined_x_neg <- ifelse(refined_x < 0, -refined_x, 0)
     knots_neg <- unique(sort(ifelse(knots < 0, -knots, 0)))
     D1 <- get_local_poly(knots_neg, refined_x_neg, p)
-
+    D1 <- D1 * ((-1)^neg_sign_order)
+    
     # Handle the positive part
     refined_x_pos <- ifelse(refined_x > 0, refined_x, 0)
     knots_pos <- unique(sort(ifelse(knots > 0, knots, 0)))
@@ -418,16 +457,16 @@ global_poly_helper <- function(x, p = 2) {
   result
 }
 
-#' Constructing and evaluating the global polynomials, to account for boundary conditions (design matrix) of sGP
+#' Constructing and evaluating the global polynomials, to account for boundary conditions (design matrix) of sgp
 #'
 #' @param refined_x A vector of locations to evaluate the sB basis
-#' @param a The frequency of sGP.
+#' @param a The frequency of sgp.
 #' @param m The number of harmonics to consider
 #' @return A matrix with i,j componet being the value of jth basis function
 #' value at ith element of x, the ncol should equal to (2*m), and nrow
 #' should equal to the number of elements in x
 #' @export
-global_poly_helper_sGP <- function(refined_x, a, m, initial_location = NULL) {
+global_poly_helper_sgp <- function(refined_x, a, m, initial_location = NULL) {
   if(is.null(initial_location)){
     initial_location <- min(refined_x)
   }
@@ -439,41 +478,41 @@ global_poly_helper_sGP <- function(refined_x, a, m, initial_location = NULL) {
   X 
 }
 
-#' Construct prior based on d-step prediction SD (for IWP)
+#' Construct prior based on d-step prediction SD (for iwp)
 #'
 #' @param prior A list that contains alpha and u. This specifies the target prior on the d-step SD \eqn{\sigma(d)}, such that \eqn{P(\sigma(d) > u) = alpha}.
 #' @param d A numeric value for the prediction step.
-#' @param p An integer for the order of IWP.
+#' @param p An integer for the order of iwp.
 #' @return A list that contains alpha and u. The prior for the smoothness parameter \eqn{\sigma} such that \eqn{P(\sigma > u) = alpha}, that yields the ideal prior on the d-step SD.
 #' @export
-prior_conversion_IWP <- function(d, prior, p) {
+prior_conversion_iwp <- function(d, prior, p) {
   Cp <- (d^((2 * p) - 1)) / (((2 * p) - 1) * (factorial(p - 1)^2))
   prior_q <- list(alpha = prior$alpha, u = (prior$u * (1 / sqrt(Cp))))
   prior_q
 }
 
 
-#' Compute the SD correction factor for sGP
+#' Compute the SD correction factor for sgp
 #' @param d A numeric value for the prediction step.
-#' @param a The frequency parameter of the sGP.
+#' @param a The frequency parameter of the sgp.
 #' @return The correction factor c that should be used to compute the d-step PSD as c*SD.
-compute_d_step_sGPsd <- function(d,a){
+compute_d_step_sgpsd <- function(d,a){
   sqrt((1/(a^2))*((d/2) - (sin(2*a*d)/(4*a))))
 }
 
 
-#' Construct prior based on d-step prediction SD (for sGP)
+#' Construct prior based on d-step prediction SD (for sgp)
 #'
 #' @param prior A list that contains alpha and u. This specifies the target prior on the d-step SD \eqn{\sigma(d)}, such that \eqn{P(\sigma(d) > u) = alpha}.
 #' @param d A numeric value for the prediction step.
-#' @param a The frequency parameter of the sGP.
-#' @param m The number of harmonics that should be considered, by default m = 1 represents only the sGP.
+#' @param a The frequency parameter of the sgp.
+#' @param m The number of harmonics that should be considered, by default m = 1 represents only the sgp.
 #' @return A list that contains alpha and u. The prior for the smoothness parameter \eqn{\sigma} such that \eqn{P(\sigma > u) = alpha}, that yields the ideal prior on the d-step SD.
 #' @export
-prior_conversion_sGP <- function(d, prior, a, m = 1) {
+prior_conversion_sgp <- function(d, prior, a, m = 1) {
   correction_factor <- 0
   for (i in 1:m) {
-    correction_factor <- correction_factor + compute_d_step_sGPsd(d = d, a = (i*a))
+    correction_factor <- correction_factor + compute_d_step_sgpsd(d = d, a = (i*a))
   }
   prior_SD <- list(u = prior$u/correction_factor, alpha = prior$alpha)
   prior_SD
@@ -489,7 +528,7 @@ dgTMatrix_wrapper <- function(matrix) {
 
 #' @export
 get_default_option_list_MCMC <- function(option_list = list()){
-  default_options <- list(chains = 1, cores = 1, init = "random", seed = 123, warmup = 10000)
+  default_options <- list(chains = 1, cores = 1, init = "random", seed = 123, warmup = 10000, silent = TRUE, laplace = FALSE)
   required_names <- names(default_options)
   for (name in required_names) {
     if(! name %in% names(option_list)){
@@ -499,6 +538,75 @@ get_default_option_list_MCMC <- function(option_list = list()){
   option_list
 }
 
+
+#' Custom Template Function
+#'
+#' This function allows for the dynamic modification of a C++ template
+#' within the BayesGP package. Users can specify custom content for the 
+#' log-likelihood as well as the log-prior of the variance parameter in the template.
+#' 
+#' 
+#' @param SETUP A character string or vector containing the 
+#'   lines of C++ code to be inserted before the computation of log-likelihood.
+#' @param LOG_LIKELIHOOD A character string or vector containing the 
+#'   lines of C++ code to be inserted in the log-likelihood section of 
+#'   the template. Should be NULL if no changes are to be made to this section.
+#' @param LOG_PRIOR A character string or vector containing the 
+#'   lines of C++ code to be inserted in the log-prior (of the variance parameter) section of 
+#'   the template. Should be NULL if no changes are to be made to this section.
+#' @param compile_template A indicator of whether the new template should be compiled. default is FALSE.
+#' @return A string representing the path to the temporary .so (or .dll) file
+#'   containing the compiled custom C++ code.
+#'
+#' @export
+custom_template <- function(SETUP = NULL, LOG_LIKELIHOOD = NULL, LOG_PRIOR = NULL, compile_template = FALSE){
+  template_path <- system.file("extsrc", "BayesGP.cpp", package = "BayesGP")
+  file_content <- readLines(template_path)
+  if(!is.null(SETUP)){
+    start_line = which(file_content == "  // START OF YOUR SETUP")
+    end_line = which(file_content == "  // END OF YOUR SETUP")
+    if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
+      # Replace the content
+      file_content <- c(file_content[1:(start_line)], SETUP, file_content[(end_line+1):length(file_content)])
+    } else {
+      warning("Markers not found or in incorrect order")
+    }
+  }
+  if(!is.null(LOG_LIKELIHOOD)){
+    start_line = which(file_content == "    // START OF YOUR LOG_LIKELIHOOD: ll")
+    end_line = which(file_content == "    // END OF YOUR LOG_LIKELIHOOD")
+    if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
+      # Replace the content
+      file_content <- c(file_content[1:(start_line)], LOG_LIKELIHOOD, file_content[(end_line+1):length(file_content)])
+    } else {
+      warning("Markers not found or in incorrect order")
+    }
+  }
+  if(!is.null(LOG_PRIOR)){
+    start_line = which(file_content == "  // START OF YOUR LOG_PRIOR: lpT")
+    end_line = which(file_content == "  // END OF YOUR LOG_PRIOR")
+    if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
+      # Replace the content
+      file_content <- c(file_content[1:(start_line)], LOG_PRIOR, file_content[(end_line+1):length(file_content)])
+    } else {
+      warning("Markers not found or in incorrect order")
+    }
+  }
+  
+  # Create a temporary file
+  temp_file <- tempfile(fileext = ".cpp") # .cpp extension is added for clarity
+  
+  # Write the modified content to the temporary file
+  writeLines(file_content, temp_file)
+  temp_so_file <- sub("\\.cpp$", "", temp_file)
+  
+  if(compile_template == TRUE){
+    suppressWarnings(suppressMessages(invisible(TMB::compile(file = temp_file)) ))
+    dyn.load(TMB::dynlib(temp_so_file))
+  }
+  
+  return(temp_so_file)
+}
 
 
 #' Roxygen commands

@@ -8,9 +8,11 @@
   object,
   newdata = NULL,
   variable,
-  degree = 0,
+  deriv = 0,
   include.intercept = TRUE,
-  only.samples = FALSE
+  only.samples = FALSE,
+  quantiles = c(0.025, 0.5, 0.975),
+  boundary.condition = "Yes"
 )
 }
 \arguments{
@@ -20,12 +22,16 @@
 
 \item{variable}{The name of the variable to be predicted, should be in the `newdata`.}
 
-\item{degree}{The degree of derivative that the user specifies for inference. Only applicable for a GP in the `IWP` type.}
+\item{deriv}{The degree of derivative that the user specifies for inference. Only applicable for a GP in the `iwp` type.}
 
 \item{include.intercept}{A logical variable specifying whether the intercept should be accounted when doing the prediction. The default is TRUE. For Coxph model, this 
 variable will be forced to FALSE.}
 
 \item{only.samples}{A logical variable indicating whether only the posterior samples are required. The default is FALSE, and the summary of posterior samples will be reported.}
+
+\item{quantiles}{A numeric vector of quantiles that predict.FitResult will produce, the default is c(0.025, 0.5, 0.975).}
+
+\item{boundary.condition}{A string specifies whether the boundary.condition should be considered in the prediction, should be one of c("yes", "no", "only"). The default option is "Yes".}
 }
 \description{
 To predict the GP component in the fitted model, at the locations specified in `newdata`.

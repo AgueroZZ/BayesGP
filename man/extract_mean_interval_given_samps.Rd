@@ -4,13 +4,15 @@
 \alias{extract_mean_interval_given_samps}
 \title{Construct posterior inference given samples}
 \usage{
-extract_mean_interval_given_samps(samps, level = 0.95)
+extract_mean_interval_given_samps(samps, level = 0.95, quantiles = NULL)
 }
 \arguments{
 \item{samps}{Posterior samples of f or its derivative, with the first column being evaluation
-points x. This can be yielded by `compute_post_fun_IWP` function.}
+points x. This can be yielded by `compute_post_fun_iwp` function.}
 
-\item{level}{The level to compute the pointwise interval.}
+\item{level}{The level to compute the pointwise interval. Ignored when quantiles are provided.}
+
+\item{quantiles}{A numeric vector of quantiles to be computed.}
 }
 \value{
 A dataframe with a column for evaluation locations x, and posterior mean and pointwise

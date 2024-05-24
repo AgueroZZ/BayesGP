@@ -104,10 +104,24 @@ We can similarly use `predict` to evaluate the effect at different locations:
 ```{r}
 pred_sGP <- predict(mod, variable = "year", newdata = data.frame(year = seq(min(data$year), max(data$year), by = 0.1)))
 plot(mean ~ year, data = pred_sGP, type = 'l', col = 'black')
-lines(pupper ~ year, data = pred_sGP, lty = 'dashed', col = 'grey')
-lines(plower ~ year, data = pred_sGP, lty = 'dashed', col = 'grey')
+lines(q0.025 ~ year, data = pred_sGP, lty = 'dashed', col = 'grey')
+lines(q0.975 ~ year, data = pred_sGP, lty = 'dashed', col = 'grey')
 ```
 
+```{r}
+mod <- model_fit(formula = y ~ f(x = year, 
+                                    model = "sGP", 
+                                    a = 2*pi/10, k = 30,
+                                    sd.prior = list(prior = "exp", param = prior_SD, h = 2),
+                                    boundary.prior = list(prec = c(Inf, Inf))) + 
+                               f(x = x, 
+                                    model = "IID", 
+                                    sd.prior = list(prior = "exp", param = 0.5)),
+                   
+                 family = "Poisson",
+                 data = data,
+                 method = "aghq")
+```
 
 
 

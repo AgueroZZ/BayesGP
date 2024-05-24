@@ -1,60 +1,39 @@
 #' @export
+#' @method summary FitResult
 summary.FitResult <- function(object) {
-  if(any(class(object$mod) == "aghq")){
-    aghq_summary <- summary(object$mod)
-    aghq_output <- capture.output(aghq_summary)
-    cur_index <- grep("Here are some moments and quantiles for the transformed parameter:", aghq_output)
-    cat(paste(aghq_output[1:(cur_index - 1)], collapse = "\n"))
-    
-    if(class(aghq_summary) == "aghqsummary"){
-      cat("\nHere are some moments and quantiles for the log precision: \n")
-      # cur_index <- grep("median    97.5%", aghq_output)
-      # cat(paste(aghq_output[cur_index], collapse = "\n"))
-    }
-    
-    if(!is.null(aghq_summary$summarytable)){
-      summary_table <- as.matrix(aghq_summary$summarytable)
-      theta_names <- c()
-      for (instance in object$instances) {
-        theta_names <- c(theta_names, paste("theta(", toString(instance@smoothing_var), ")", sep = ""))
-      }
-      if((length(row.names(summary_table)) - length(theta_names)) >= 1 ){
-        num_theta_family <- (length(row.names(summary_table)) - length(theta_names))
-        theta_names <- c(theta_names, rep(paste("theta(", "family", ")", sep = ""),  num_theta_family))
-      }
-      row.names(summary_table) <- theta_names
-      print(summary_table)
-      cat("\n")
-    }
-  }
-  # samps <- aghq::sample_marginal(object$mod, M = 3000)
-  samps <- object$samps
-  if(length(unlist(object$fixed_samp_indexes)) >= 1){
-    fixed_samps <- samps$samps[unlist(object$fixed_samp_indexes), , drop = F]
-    fixed_summary <- apply(X = fixed_samps,MARGIN = 1, summary)
-    colnames(fixed_summary) <- names(object$fixed_samp_indexes)
-    fixed_sd <- apply(X = fixed_samps, MARGIN = 1, sd)
-    fixed_summary <- rbind(fixed_summary, fixed_sd)
-    rownames(fixed_summary)[nrow(fixed_summary)] <- "sd"
-    cat("Here are some moments and quantiles for the fixed effects: \n\n")
-    print(t(fixed_summary[c(2:5, 7), , drop = FALSE]))
-  }
+  output <- post_table(object)
+  class(output) <- "summary.FitResult"
+  return(output)
 }
+
+#' @export
+#' @method print summary.FitResult
+print.summary.FitResult <- function(summary.FitResult) {
+  class(summary.FitResult) <- "data.frame"
+  output <- capture.output(print(summary.FitResult))
+  cat("Here are some posterior/prior summaries for the parameters: \n")
+  cat(output, sep = "\n")
+  cat("For Normal prior, P1 is its mean and P2 is its variance. \n")
+  cat("For Exponential prior, prior is specified as P(theta > P1) = P2. \n")
+  invisible(summary.FitResult)
+}
+
 
 #' To predict the GP component in the fitted model, at the locations specified in `newdata`. 
 #' @param object The fitted object from the function `model_fit`.
 #' @param newdata The dataset that contains the locations to be predicted for the specified GP. Its column names must include `variable`.
 #' @param variable The name of the variable to be predicted, should be in the `newdata`.
-#' @param degree The degree of derivative that the user specifies for inference. Only applicable for a GP in the `IWP` type.
+#' @param deriv The degree of derivative that the user specifies for inference. Only applicable for a GP in the `iwp` type.
 #' @param include.intercept A logical variable specifying whether the intercept should be accounted when doing the prediction. The default is TRUE. For Coxph model, this 
 #' variable will be forced to FALSE.
 #' @param only.samples A logical variable indicating whether only the posterior samples are required. The default is FALSE, and the summary of posterior samples will be reported.
+#' @param quantiles A numeric vector of quantiles that predict.FitResult will produce, the default is c(0.025, 0.5, 0.975).
+#' @param boundary.condition A string specifies whether the boundary.condition should be considered in the prediction, should be one of c("yes", "no", "only"). The default option is "Yes".
 #' @export
-predict.FitResult <- function(object, newdata = NULL, variable, degree = 0, include.intercept = TRUE, only.samples = FALSE) {
+predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, include.intercept = TRUE, only.samples = FALSE, quantiles = c(0.025, 0.5, 0.975), boundary.condition = "Yes") {
   if(object$family == "Coxph" || object$family == "coxph"| object$family == "cc" | object$family == "casecrossover" | object$family == "CaseCrossover"){
     include.intercept = FALSE ## No intercept for coxph model
   }
-  # samps <- aghq::sample_marginal(object$mod, M = 3000)
   samps <- object$samps
   for (instance in object$instances) {
     if(sum(names(object$random_samp_indexes) == variable) >= 2){
@@ -63,12 +42,18 @@ predict.FitResult <- function(object, newdata = NULL, variable, degree = 0, incl
       stop("The specified variable cannot be found in the fitted model, please check the name.")
     }
     global_samps <- samps$samps[object$boundary_samp_indexes[[variable]], , drop = F]
+    if(boundary.condition == "no"){
+      global_samps <- NULL
+    }
     coefsamps <- samps$samps[object$random_samp_indexes[[variable]], ]
-    if (instance@smoothing_var == variable && class(instance) == "IWP") {
+    if(boundary.condition == "only"){
+      coefsamps <- 0 * coefsamps
+    }
+    if (instance@smoothing_var == variable && class(instance) == "iwp") {
       IWP <- instance
       ## Step 2: Initialization
       if (is.null(newdata)) {
-        refined_x_final <- IWP@observed_x
+        refined_x_final <- seq(from = min(IWP@observed_x), to = max(IWP@observed_x), length.out = 3000)
       } else {
         refined_x_final <- sort(newdata[[variable]] - IWP@initial_location) # initialize according to `initial_location`
       }
@@ -77,22 +62,22 @@ predict.FitResult <- function(object, newdata = NULL, variable, degree = 0, incl
       } else{
         intercept_samps <- NULL
       }
-      ## Step 3: apply `compute_post_fun_IWP` to samps
-      f <- compute_post_fun_IWP(
+      ## Step 3: apply `compute_post_fun_iwp` to samps
+      f <- compute_post_fun_iwp(
         samps = coefsamps, global_samps = global_samps,
         knots = IWP@knots,
         refined_x = refined_x_final,
-        p = IWP@order, ## check this order or p?
-        degree = degree,
+        p = IWP@order,
+        degree = deriv,
         intercept_samps = intercept_samps
       )
       f[,1] <- f[,1] + IWP@initial_location
     }
-    else if (instance@smoothing_var == variable && class(instance) == "sGP") {
+    else if (instance@smoothing_var == variable && class(instance) == "sgp") {
       sGP <- instance
       ## Step 2: Initialization
       if (is.null(newdata)) {
-        refined_x_final <- sGP@observed_x
+        refined_x_final <- seq(from = min(sGP@observed_x), to = max(sGP@observed_x), length.out = 3000)
       } else {
         refined_x_final <- sort(newdata[[variable]] - sGP@initial_location) # initialize according to `initial_location`
       }
@@ -101,26 +86,28 @@ predict.FitResult <- function(object, newdata = NULL, variable, degree = 0, incl
       } else{
         intercept_samps <- NULL
       }
-      ## Step 3: apply `compute_post_fun_sGP` to samps
-      f <- compute_post_fun_sGP(
+      ## Step 3: apply `compute_post_fun_sgp` to samps
+      f <- compute_post_fun_sgp(
         samps = coefsamps, global_samps = global_samps,
         k = sGP@k,
         refined_x = refined_x_final,
         a = sGP@a, 
         m = sGP@m,
-        region = sGP@region,
+        region = (sGP@region - sGP@initial_location),
         intercept_samps = intercept_samps,
-        boundary = sGP@boundary
+        boundary = sGP@boundary,
+        initial_location = 0
       )
       f[,1] <- f[,1] + sGP@initial_location
     }
   }
   if(only.samples){
+    names(f)[-1] <- paste0("samp", 1:(ncol(f)-1))
     return(f)
   }
   ## Step 4: summarize the prediction
-  fpos <- extract_mean_interval_given_samps(f)
-  names(fpos)[1] <- variable
+  fpos <- extract_mean_interval_given_samps(f, quantiles = quantiles)
+  names(fpos)[names(fpos) == "x"] <- variable
   return(fpos)
 }
 
@@ -128,18 +115,18 @@ predict.FitResult <- function(object, newdata = NULL, variable, degree = 0, incl
 plot.FitResult <- function(object) {
   ### Step 1: predict with newdata = NULL
   for (instance in object$instances) { ## for each variable in model_fit
-    if (class(instance) == "IWP") {
+    if (class(instance) == "iwp") {
       predict_result <- predict(object, variable = as.character(instance@smoothing_var))
       matplot(
-        x = predict_result[,1], y = predict_result[, c("mean", "plower", "pupper")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
+        x = predict_result[,1], y = predict_result[, c("q0.5", "q0.025", "q0.975")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
         col = "black", type = "l",
         ylab = "effect", xlab = as.character(instance@smoothing_var)
       )
     }
-    if (class(instance) == "sGP") {
+    if (class(instance) == "sgp") {
       predict_result <- predict(object, variable = as.character(instance@smoothing_var))
       matplot(
-        x = predict_result[,1], y = predict_result[, c("mean", "plower", "pupper")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
+        x = predict_result[,1], y = predict_result[, c("q0.5", "q0.025", "q0.975")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
         col = "black", type = "l",
         ylab = "effect", xlab = as.character(instance@smoothing_var)
       )
@@ -166,7 +153,7 @@ sample_fixed_effect <- function(model_fit, variables){
 
 
 #' Computing the posterior samples of the function or its derivative using the posterior samples
-#' of the basis coefficients for IWP
+#' of the basis coefficients for iwp
 #'
 #' @param samps A matrix that consists of posterior samples for the O-spline basis coefficients. Each column
 #' represents a particular sample of coefficients, and each row is associated with one basis function. This can
@@ -185,19 +172,19 @@ sample_fixed_effect <- function(model_fit, variables){
 #' @examples
 #' knots <- c(0, 0.2, 0.4, 0.6)
 #' samps <- matrix(rnorm(n = (3 * 10)), ncol = 10)
-#' result <- compute_post_fun_IWP(samps = samps, knots = knots, refined_x = seq(0, 1, by = 0.1), p = 2)
+#' result <- compute_post_fun_iwp(samps = samps, knots = knots, refined_x = seq(0, 1, by = 0.1), p = 2)
 #' plot(result[, 2] ~ result$x, type = "l", ylim = c(-0.3, 0.3))
 #' for (i in 1:9) {
 #'   lines(result[, (i + 1)] ~ result$x, lty = "dashed", ylim = c(-0.1, 0.1))
 #' }
 #' global_samps <- matrix(rnorm(n = (2 * 10), sd = 0.1), ncol = 10)
-#' result <- compute_post_fun_IWP(global_samps = global_samps, samps = samps, knots = knots, refined_x = seq(0, 1, by = 0.1), p = 2)
+#' result <- compute_post_fun_iwp(global_samps = global_samps, samps = samps, knots = knots, refined_x = seq(0, 1, by = 0.1), p = 2)
 #' plot(result[, 2] ~ result$x, type = "l", ylim = c(-0.3, 0.3))
 #' for (i in 1:9) {
 #'   lines(result[, (i + 1)] ~ result$x, lty = "dashed", ylim = c(-0.1, 0.1))
 #' }
 #' @export
-compute_post_fun_IWP <- function(samps, global_samps = NULL, knots, refined_x, p, degree = 0, intercept_samps = NULL) {
+compute_post_fun_iwp <- function(samps, global_samps = NULL, knots, refined_x, p, degree = 0, intercept_samps = NULL) {
   if (p <= degree) {
     return(message("Error: The degree of derivative to compute is not defined. Should consider higher order smoothing model or lower order of the derivative degree."))
   }
@@ -224,7 +211,7 @@ compute_post_fun_IWP <- function(samps, global_samps = NULL, knots, refined_x, p
   global_samps <- rbind(intercept_samps, global_samps)
 
   ## Design matrix for the spline basis weights
-  B <- dgTMatrix_wrapper(local_poly_helper(knots, refined_x = refined_x, p = (p - degree)))
+  B <- dgTMatrix_wrapper(local_poly_helper(knots, refined_x = refined_x, p = (p - degree), neg_sign_order = degree))
 
   if ((p - degree) >= 1) {
     X <- global_poly_helper(refined_x, p = p)
@@ -255,13 +242,14 @@ compute_post_fun_IWP <- function(samps, global_samps = NULL, knots, refined_x, p
 #' @param refined_x A vector of locations to evaluate the sB basis
 #' @param a The frequency of sGP.
 #' @param m The number of harmonics to consider
+#' @param initial_location The initial location of the sGP.
 #' @return A data.frame that contains different samples of the function, with the first column
 #' being the locations of evaluations x = refined_x.
 #' @export
-compute_post_fun_sGP <- function(samps, global_samps = NULL, k, refined_x, a, region, boundary = TRUE, m, intercept_samps = NULL) {
+compute_post_fun_sgp <- function(samps, global_samps = NULL, k, refined_x, a, region, boundary = TRUE, m, intercept_samps = NULL, initial_location = NULL) {
   ## Design matrix for the spline basis weights
-  B <- dgTMatrix_wrapper(Compute_B_sB_helper(refined_x = refined_x, k = k, a = a, region = region, boundary = boundary, initial_location = NULL, m = m))
-  X <- cbind(1,global_poly_helper_sGP(refined_x = refined_x, a = a, m = m))
+  B <- dgTMatrix_wrapper(Compute_B_sB_helper(refined_x = refined_x, k = k, a = a, region = region, boundary = boundary, initial_location = initial_location, m = m))
+  X <- cbind(1,global_poly_helper_sgp(refined_x = refined_x, a = a, m = m))
   if (is.null(intercept_samps)) {
     intercept_samps <- matrix(0, nrow = 1, ncol = ncol(samps))
   }
@@ -279,18 +267,23 @@ compute_post_fun_sGP <- function(samps, global_samps = NULL, k, refined_x, a, re
 #' Construct posterior inference given samples
 #'
 #' @param samps Posterior samples of f or its derivative, with the first column being evaluation
-#' points x. This can be yielded by `compute_post_fun_IWP` function.
-#' @param level The level to compute the pointwise interval.
+#' points x. This can be yielded by `compute_post_fun_iwp` function.
+#' @param level The level to compute the pointwise interval. Ignored when quantiles are provided.
+#' @param quantiles A numeric vector of quantiles to be computed.
 #' @return A dataframe with a column for evaluation locations x, and posterior mean and pointwise
 #' intervals at that set of locations.
 #' @export
-extract_mean_interval_given_samps <- function(samps, level = 0.95) {
+extract_mean_interval_given_samps <- function(samps, level = 0.95, quantiles = NULL) {
   x <- samps[, 1]
   samples <- samps[, -1]
   result <- data.frame(x = x)
-  alpha <- 1 - level
-  result$plower <- as.numeric(apply(samples, MARGIN = 1, quantile, p = (alpha / 2)))
-  result$pupper <- as.numeric(apply(samples, MARGIN = 1, quantile, p = (level + (alpha / 2))))
+  if(is.null(quantiles)){
+    alpha <- 1 - level
+    quantiles <- c((alpha / 2), 0.5, (level + (alpha / 2)))
+  }
+  for (q in quantiles) {
+    result[[paste0("q",q)]] <- as.numeric(apply(samples, MARGIN = 1, quantile, p = q))
+  }
   result$mean <- as.numeric(apply(samples, MARGIN = 1, mean))
   result
 }
@@ -303,31 +296,31 @@ extract_mean_interval_given_samps <- function(samps, level = 0.95) {
 #' @param object The fitted object from the function `model_fit`.
 #' @param component The component of the variance parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.
 #' @param h For PSD, the unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
-#' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the default Exponential prior will be used.
+#' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.
 #' @param MCMC_samps_only For model fitted with MCMC, whether only the posterior samples are needed.
 #' @export
 var_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL, MCMC_samps_only = FALSE){
   postsigma <- NULL
   
   if(is.null(theta_logprior)){
-    theta_logprior <- function(theta,prior_alpha, prior_u) {
+    theta_logprior <- function(theta, prior_alpha, prior_u) {
       lambda <- -log(prior_alpha)/prior_u
       log(lambda/2) - lambda * exp(-theta/2) - theta/2
     }
   }
-  priorfunc <- function(x,prior_alpha, prior_u) exp(theta_logprior(x,prior_alpha, prior_u))
-  priorfuncsigma <- function(x,prior_alpha, prior_u) (2/x) * exp(theta_logprior(-2*log(x), prior_alpha, prior_u))
+  priorfunc <- function(x, prior_alpha, prior_u) exp(theta_logprior(x, prior_alpha, prior_u))
+  priorfuncsigma <- function(x, prior_alpha, prior_u) (2/x) * exp(theta_logprior(-2*log(x), prior_alpha, prior_u))
   
   if(any(class(object$mod) == "aghq")){
     if(is.null(component)){
-      if(object$family != "Gaussian"){
+      if(object$family != "gaussian"){
         stop("There is no family SD in the fitted model. Please indicate which component of the var-parameter that you want to show in `component`.")
       }
       theta_marg <- object$mod$marginals[[length(object$instances) + 1]]
       if(nrow(theta_marg) <= 2){
         stop("The number of quadrature points is too small, please use aghq_k >= 3.")
       }
-      logpostsigma <- compute_pdf_and_cdf(theta_marg,list(totheta = function(x) -2*log(x),fromtheta = function(x) exp(-x/2)),interpolation = 'spline')
+      logpostsigma <- aghq::compute_pdf_and_cdf(theta_marg,list(totheta = function(x) -2*log(x),fromtheta = function(x) exp(-x/2)),interpolation = 'spline')
       postsigma <- data.frame(SD = logpostsigma$transparam, 
                                   post = logpostsigma$pdf_transparam,
                                   prior = priorfuncsigma(logpostsigma$transparam, prior_alpha = object$control.family$sd.prior$param$alpha, prior_u = object$control.family$sd.prior$param$u))
@@ -340,7 +333,7 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
           if(nrow(theta_marg) <= 2){
             stop("The number of quadrature points is too small, please use aghq_k >= 3.")
           }
-          logpostsigma <- compute_pdf_and_cdf(theta_marg,list(totheta = function(x) -2*log(x),fromtheta = function(x) exp(-x/2)),interpolation = 'spline')
+          logpostsigma <- aghq::compute_pdf_and_cdf(theta_marg,list(totheta = function(x) -2*log(x),fromtheta = function(x) exp(-x/2)),interpolation = 'spline')
           postsigma <- data.frame(SD = logpostsigma$transparam, 
                                   post = logpostsigma$pdf_transparam,
                                   prior = priorfuncsigma(logpostsigma$transparam, prior_alpha = object$instances[[i]]@sd.prior$param$alpha, prior_u = object$instances[[i]]@sd.prior$param$u))
@@ -351,18 +344,18 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
             }
           }
           if(!is.null(h)){
-            if(class(instance) == "IWP"){
+            if(class(instance) == "iwp"){
               p <- instance@order
               correction <- sqrt((h^((2 * p) - 1)) / (((2 * p) - 1) * (factorial(p - 1)^2)))
             }
-            else if(class(instance) == "sGP"){
+            else if(class(instance) == "sgp"){
               correction <- 0
               for (j in 1:instance@m) {
-                correction <- correction + compute_d_step_sGPsd(d = h, a = (j*instance@a))
+                correction <- correction + compute_d_step_sgpsd(d = h, a = (j*instance@a))
               }
             }
             else{
-              stop("PSD is currently on defined on IWP and sGP, please specify h = NULL for other type of random effect")
+              stop("PSD is currently on defined on iwp and sGP, please specify h = NULL for other type of random effect")
             }
             postsigmaPSD <- data.frame(PSD = postsigma$SD * correction, 
                                        post.PSD = postsigma$post / correction,
@@ -380,7 +373,7 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
   else if(any(class(object$mod) == "stanfit")){
     sigmaPSD_marg_samps <- NULL
     if(is.null(component)){
-      if(object$family != "Gaussian"){
+      if(object$family != "gaussian"){
         stop("There is no family SD in the fitted model. Please indicate which component of the var-parameter that you want to show in `component`.")
       }
       theta_marg_samps <- object$samps$thet[[length(object$instances) + 1]]
@@ -406,18 +399,18 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
             }
           }
           if(!is.null(h)){
-            if(class(instance) == "IWP"){
+            if(class(instance) == "iwp"){
               p <- instance@order
               correction <- sqrt((h^((2 * p) - 1)) / (((2 * p) - 1) * (factorial(p - 1)^2)))
             }
-            else if(class(instance) == "sGP"){
+            else if(class(instance) == "sgp"){
               correction <- 0
               for (j in 1:instance@m) {
-                correction <- correction + compute_d_step_sGPsd(d = h, a = (j*instance@a))
+                correction <- correction + compute_d_step_sgpsd(d = h, a = (j*instance@a))
               }
             }
             else{
-              stop("PSD is currently on defined on IWP and sGP, please specify h = NULL for other type of random effect")
+              stop("PSD is currently on defined on iwp and sGP, please specify h = NULL for other type of random effect")
             }
             sigmaPSD_marg_samps <- sigma_marg_samps * correction
             postsigmaPSD <- data.frame(PSD = postsigma$SD * correction, 
@@ -442,6 +435,25 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
   return(postsigma)
 }
 
+#' Plot the posterior density of a variance parameter in the fitted model
+#' 
+#' @param object The fitted object from the function `model_fit`.
+#' @param component The component of the variance parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.
+#' @param h For PSD, the unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
+#' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.
+#' @export
+var_plot <- function(object, component = NULL, h = NULL, theta_logprior = NULL){
+  hyper_result <- var_density(object = object, component = component, h = h, theta_logprior = theta_logprior, MCMC_samps_only = FALSE)
+  if("PSD" %in% names(hyper_result)){
+    matplot(hyper_result[,'PSD'], hyper_result[,c('post.PSD','prior.PSD')], lty=c(1,2), type = "l", xlab = "PSD", ylab = "Density")
+    legend('topright', lty=c(1,2), col=c('black','red'), legend=c('post','prior'), bty = "n")
+  }
+  else{
+    matplot(hyper_result[,'SD'], hyper_result[,c('post','prior')], lty=c(1,2), type = "l", xlab = "SD", ylab = "Density")
+    legend('topright', lty=c(1,2), col=c('black','red'), legend=c('post','prior'), bty = "n")
+  }
+}
+
 
 #' Obtain the posterior and prior density of all the parameters in the fitted model
 #' 
@@ -459,8 +471,8 @@ para_density <- function(object){
     result_list[[random_name]] <- var_density(object = object, component = random_name)
   }
   
-  if(object$family == "Gaussian"){
-    result_list[["family_var"]] <- var_density(object = object)
+  if(object$family == "gaussian"){
+    result_list[["family_sd"]] <- var_density(object = object)
   }
   
   return(result_list)
@@ -505,7 +517,12 @@ post_table <- function(object, quantiles = c(0.025, 0.975), digits = 3){
     }
     for (i in 1:length(object$instances)) {
       if(name == object$instances[[i]]@smoothing_var){
-        param <- object$instances[[i]]@sd.prior$param
+        if(!is.null(object$instances[[i]]@sd.prior$h) ||!is.null(object$instances[[i]]@sd.prior$step)){
+          param <- object$instances[[i]]@psd.prior$param
+        }
+        else{
+          param <- object$instances[[i]]@sd.prior$param
+        }
       }
     }
     object$instances
@@ -513,11 +530,11 @@ post_table <- function(object, quantiles = c(0.025, 0.975), digits = 3){
     result_table <- rbind(result_table, to_add)
   }
   
-  if("family_var" %in% names(all_density)){
-    all_cdf[["family_var"]] <- compute_cdf(x = all_density[["family_var"]]$SD, y = all_density[["family_var"]]$post)
-    to_add <- c("family_var", all_cdf[["family_var"]]$x[max(which(all_cdf[["family_var"]]$cdf <= 0.5))])
+  if("family_sd" %in% names(all_density)){
+    all_cdf[["family_sd"]] <- compute_cdf(x = all_density[["family_sd"]]$SD, y = all_density[["family_sd"]]$post)
+    to_add <- c("family_sd", all_cdf[["family_sd"]]$x[max(which(all_cdf[["family_sd"]]$cdf <= 0.5))])
     for (q in quantiles) {
-      to_add <- c(to_add, all_cdf[["family_var"]]$x[max(which(all_cdf[["family_var"]]$cdf <= q))])
+      to_add <- c(to_add, all_cdf[["family_sd"]]$x[max(which(all_cdf[["family_sd"]]$cdf <= q))])
     }
     to_add <- c(to_add, "Exponential", object$control.family$sd.prior$param$u, object$control.family$sd.prior$param$alpha)
     result_table <- rbind(result_table, to_add)

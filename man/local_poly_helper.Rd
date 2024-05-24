@@ -4,7 +4,7 @@
 \alias{local_poly_helper}
 \title{Constructing and evaluating the local O-spline basis (design matrix)}
 \usage{
-local_poly_helper(knots, refined_x, p = 2)
+local_poly_helper(knots, refined_x, p = 2, neg_sign_order = 0)
 }
 \arguments{
 \item{knots}{A vector of knots used to construct the O-spline basis, first knot should be viewed as "0",
@@ -13,6 +13,8 @@ the reference starting location. These k knots will define (k-1) basis function 
 \item{refined_x}{A vector of locations to evaluate the O-spline basis}
 
 \item{p}{An integer value indicates the order of smoothness}
+
+\item{neg_sign_order}{An integer value N such that D = ((-1)^N)*D for the splines at negative knots. Default is 0.}
 }
 \value{
 A matrix with i,j component being the value of jth basis function
