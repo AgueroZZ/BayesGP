@@ -44,10 +44,12 @@ parse_formula <- function(formula) {
 # Create a class for iwp using S4
 setClass("iwp", slots = list(
   response_var = "name", smoothing_var = "name", order = "numeric",
-  knots = "numeric", observed_x = "numeric", sd.prior = "list",
+  knots = "numeric", k = "numeric",
+  observed_x = "numeric", sd.prior = "list",
   psd.prior = "list",
   boundary.prior = "list", data = "data.frame", X = "matrix",
-  B = "matrix", P = "matrix", initial_location = "ANY"
+  B = "matrix", P = "matrix", initial_location = "ANY",
+  region = "numeric"
 ))
 
 # Create a class for sgp using S4

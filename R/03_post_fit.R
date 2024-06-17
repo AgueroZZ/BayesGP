@@ -249,7 +249,7 @@ compute_post_fun_iwp <- function(samps, global_samps = NULL, knots, refined_x, p
 compute_post_fun_sgp <- function(samps, global_samps = NULL, k, refined_x, a, region, boundary = TRUE, m, intercept_samps = NULL, initial_location = NULL) {
   ## Design matrix for the spline basis weights
   B <- dgTMatrix_wrapper(Compute_B_sB_helper(refined_x = refined_x, k = k, a = a, region = region, boundary = boundary, initial_location = initial_location, m = m))
-  X <- cbind(1,global_poly_helper_sgp(refined_x = refined_x, a = a, m = m))
+  X <- cbind(1,global_poly_helper_sgp(refined_x = refined_x, a = a, m = m, initial_location = initial_location))
   if (is.null(intercept_samps)) {
     intercept_samps <- matrix(0, nrow = 1, ncol = ncol(samps))
   }

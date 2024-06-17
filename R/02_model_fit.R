@@ -483,20 +483,28 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         stop("Error: Parameter <order> in the random effect part should be >= 1.")
       }
       boundary.prior <- eval(rand_effect$boundary.prior, envir = envir)
+      
+      if("region" %in% names(rand_effect)){
+        region <- eval(rand_effect$region, envir = envir)
+      }
+      else{
+        region <- range(data[[smoothing_var]])
+      }
+      
       # If the user does not specify initial_location, compute initial_location with
-      # the median of data[[smoothing_var]]
+      # the mean of region
       if (is.null(initial_location)) {
-        initial_location <- median(data[[smoothing_var]])
+        initial_location <- mean(region)
       }
       if (!is.numeric(initial_location)){
         if (initial_location == "middle") {
-          initial_location <- median(data[[smoothing_var]])
+          initial_location <- mean(region)
         }
         else if (initial_location == "left") {
-          initial_location <- min(data[[smoothing_var]])
+          initial_location <- min(region)
         }
         else if (initial_location == "right") {
-          initial_location <- max(data[[smoothing_var]])
+          initial_location <- max(region)
         }
         else{
           stop("initial_location should be either numeric or one of 'left', 'right', 'middle'.")
@@ -505,12 +513,13 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
       # If the user does not specify knots, compute knots with
       # the parameter k
       initialized_smoothing_var <- data[[smoothing_var]] - initial_location
+      region_initialized <- region - initial_location
       if (is.null(knots)) {
         default_k <- 30
         if (is.null(k)) {
-          knots <- unique(sort(seq(from = min(initialized_smoothing_var), to = max(initialized_smoothing_var), length.out = default_k))) # should be length.out
+          knots <- unique(sort(seq(from = min(region_initialized), to = max(region_initialized), length.out = default_k))) # should be length.out
         } else {
-          knots <- unique(sort(seq(from = min(initialized_smoothing_var), to = max(initialized_smoothing_var), length.out = k)))
+          knots <- unique(sort(seq(from = min(region_initialized), to = max(region_initialized), length.out = k)))
         }
       }
       else{
@@ -606,14 +615,20 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         stop("Error: Parameter <a> in the random effect part should be positive.")
       }
       boundary.prior <- eval(rand_effect$boundary.prior, envir = envir)
+      if("region" %in% names(rand_effect)){
+        region <- eval(rand_effect$region, envir = envir)
+      }
+      else{
+        region <- range(data[[smoothing_var]])
+      }
       # If the user does not specify initial_location, compute initial_location with
-      # the min of data[[smoothing_var]]
+      # the min of region
       if (is.null(initial_location)) {
-        initial_location <- min(data[[smoothing_var]])
+        initial_location <- min(region)
       }
       if (!is.numeric(initial_location)){
         if (initial_location == "left") {
-          initial_location <- min(data[[smoothing_var]])
+          initial_location <- min(region)
         }
         else{
           stop("initial_location should be either numeric or one of 'left', 'right', 'middle'.")
@@ -621,12 +636,6 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
       }
       initialized_smoothing_var <- data[[smoothing_var]] - initial_location
       observed_x <- sort(initialized_smoothing_var) # initialized_smoothing_var: initialized observed covariate values
-      if("region" %in% names(rand_effect)){
-        region <- eval(rand_effect$region, envir = envir)
-      }
-      else{
-        region <- range(data[[smoothing_var]])
-      }
       if("accuracy" %in% names(rand_effect)){
         accuracy <- eval(rand_effect$accuracy, envir = envir)
       }

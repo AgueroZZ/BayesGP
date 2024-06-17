@@ -1,7 +1,7 @@
 Package: BayesGP
 Type: Package
 Title: Efficient implementation of Gaussian process in Bayesian hierarchical models.
-Version: 0.1.1
+Version: 0.1.2
 Authors: Ziang Zhang, Yongwei Lin
 Maintainer: <aguero.zhang@mail.utoronto.ca>, <yongwei.lin@mail.utoronto.ca>
 Description: R package that implements a variety of Bayesian hierarchical model with flexible Gaussian processes prior
@@ -26,5 +26,5 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 NeedsCompilation: yes
-Packaged: 2022-05-25 19:43:27 UTC; ziangzhang
+Packaged: 2024-06-16 19:43:27 UTC; ziangzhang
 Config/testthat/edition: 3
