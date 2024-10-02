@@ -233,7 +233,7 @@ get_result_by_method <- function(response_var, data, instances, design_mat_fixed
   }
   
   if(theta_count == 0 & method != "nlminb"){
-    stop("For model with no hyper-parameter, the method cannot be aghq or MCMC.")
+    stop("For model with no hyper-parameter, the method cannot be aghq or MCMC. Please refit with method = 'nlminb'.")
   }
   
   if(method == "nlminb"){
@@ -470,7 +470,12 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         k <- eval(rand_effect$k, envir = envir)
       }
       else if("knots" %in% names(rand_effect)){
-        k <- length(knots)
+        if(length(knots) == 1){
+          k <- knots
+        }
+        else{
+          k <- length(knots)
+        }
       }
       else{
         k <- NULL
@@ -479,8 +484,12 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
       if (!(is.null(k)) && k < 3) {
         stop("Error: parameter <k> in the random effect part should be >= 3.")
       }
-      if (is.null(order) | order < 1) {
-        stop("Error: Parameter <order> in the random effect part should be >= 1.")
+      if (is.null(order)){
+        # Default value for order is 2
+        order <- 2
+      }
+      if (order != round(order, 1) | order < 1) {
+        stop("Error: Parameter <order> in the random effect part should be an integer >= 1.")
       }
       boundary.prior <- eval(rand_effect$boundary.prior, envir = envir)
       
@@ -514,7 +523,7 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
       # the parameter k
       initialized_smoothing_var <- data[[smoothing_var]] - initial_location
       region_initialized <- region - initial_location
-      if (is.null(knots)) {
+      if (is.null(knots) || length(knots) == 1) {
         default_k <- 30
         if (is.null(k)) {
           knots <- unique(sort(seq(from = min(region_initialized), to = max(region_initialized), length.out = default_k))) # should be length.out
@@ -607,7 +616,18 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         m <- 1
       }
       if(is.null(k)){
-        k <- 30
+        if("knots" %in% names(rand_effect)){
+          knots <- eval(rand_effect$knots, envir = envir)
+          if(length(knots) == 1){
+            k <- knots
+          }
+          else{
+            k <- length(knots)
+          }
+        }
+        else{
+          k <- 30
+        }
       }else if (k < 3) {
         stop("Error: parameter <k> in the random effect part should be >= 3.")
       }
@@ -815,7 +835,7 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
     fit_result$samps <- aghq::sample_marginal(fit_result$mod, M = M)
   }
   else if(any(class(fit_result$mod) == "nlminb")){
-    fit_result$samps <- LaplacesDemon::rmvnp(n = M, mu = fit_result$mod$mean, Omega = as.matrix(fit_result$mod$prec))
+    fit_result$samps <- list(samps = LaplacesDemon::rmvnp(n = M, mu = fit_result$mod$mean, Omega = as.matrix(fit_result$mod$prec)))
   }
   else if(any(class(fit_result$mod) == "stanfit")){
     mc_samps <- rstan::extract(fit_result$mod)

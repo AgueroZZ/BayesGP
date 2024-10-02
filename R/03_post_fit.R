@@ -113,6 +113,8 @@ predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, inclu
 
 #' @export
 plot.FitResult <- function(object) {
+  par(ask = TRUE)
+  
   ### Step 1: predict with newdata = NULL
   for (instance in object$instances) { ## for each variable in model_fit
     if (class(instance) == "iwp") {
@@ -133,8 +135,18 @@ plot.FitResult <- function(object) {
     }
   }
 
-  ### Step 2: then plot the original aghq object
-  # plot(object$mod)
+  ### Step 2: plot any variance parameter
+  if (object$family == "gaussian") {
+    sd_plot(object = object, component = NULL)
+    # add title
+    title(main = "Posterior Density of SD: family")
+  }
+  for (component in names(object$random_samp_indexes)) {
+    sd_plot(object = object, component = component)
+    # add title
+    title(main = paste("Posterior Density of (P)SD: ", component, sep = ""))
+  }
+  par(ask = FALSE)
 }
 
 
@@ -299,7 +311,7 @@ extract_mean_interval_given_samps <- function(samps, level = 0.95, quantiles = N
 #' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.
 #' @param MCMC_samps_only For model fitted with MCMC, whether only the posterior samples are needed.
 #' @export
-var_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL, MCMC_samps_only = FALSE){
+sd_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL, MCMC_samps_only = FALSE){
   postsigma <- NULL
   
   if(is.null(theta_logprior)){
@@ -314,7 +326,14 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
   if(any(class(object$mod) == "aghq")){
     if(is.null(component)){
       if(object$family != "gaussian"){
-        stop("There is no family SD in the fitted model. Please indicate which component of the var-parameter that you want to show in `component`.")
+        if(length(names(object$random_samp_indexes)) == 1){
+          component <- names(object$random_samp_indexes)
+          result <- sd_density(object = object, component = component, h = h, theta_logprior = theta_logprior, MCMC_samps_only = MCMC_samps_only)
+          return(result)
+        }
+        else{
+          stop("There is no family SD in the fitted model. Please indicate which component of the sd parameter that you want to show in `component`.")
+        }
       }
       theta_marg <- object$mod$marginals[[length(object$instances) + 1]]
       if(nrow(theta_marg) <= 2){
@@ -374,7 +393,7 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
     sigmaPSD_marg_samps <- NULL
     if(is.null(component)){
       if(object$family != "gaussian"){
-        stop("There is no family SD in the fitted model. Please indicate which component of the var-parameter that you want to show in `component`.")
+        stop("There is no family SD in the fitted model. Please indicate which component of the sd parameter that you want to show in `component`.")
       }
       theta_marg_samps <- object$samps$thet[[length(object$instances) + 1]]
       sigma_marg_samps <- exp(-0.5*theta_marg_samps)
@@ -429,7 +448,7 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
   }
   
   else{
-    stop("The function `var_density` currently only supports model fittd with `method = aghq`.")
+    stop("The function `sd_density` currently only supports model fitted with `method = aghq`.")
   }
   postsigma <- postsigma[order(postsigma$SD),]
   return(postsigma)
@@ -442,8 +461,8 @@ var_density <- function(object, component = NULL, h = NULL, theta_logprior = NUL
 #' @param h For PSD, the unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
 #' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.
 #' @export
-var_plot <- function(object, component = NULL, h = NULL, theta_logprior = NULL){
-  hyper_result <- var_density(object = object, component = component, h = h, theta_logprior = theta_logprior, MCMC_samps_only = FALSE)
+sd_plot <- function(object, component = NULL, h = NULL, theta_logprior = NULL){
+  hyper_result <- sd_density(object = object, component = component, h = h, theta_logprior = theta_logprior, MCMC_samps_only = FALSE)
   if("PSD" %in% names(hyper_result)){
     matplot(hyper_result[,'PSD'], hyper_result[,c('post.PSD','prior.PSD')], lty=c(1,2), type = "l", xlab = "PSD", ylab = "Density")
     legend('topright', lty=c(1,2), col=c('black','red'), legend=c('post','prior'), bty = "n")
@@ -468,11 +487,11 @@ para_density <- function(object){
   }
   
   for (random_name in names(object$random_samp_indexes)) {
-    result_list[[random_name]] <- var_density(object = object, component = random_name)
+    result_list[[random_name]] <- sd_density(object = object, component = random_name)
   }
   
   if(object$family == "gaussian"){
-    result_list[["family_sd"]] <- var_density(object = object)
+    result_list[["family_sd"]] <- sd_density(object = object)
   }
   
   return(result_list)
