@@ -4,12 +4,16 @@
 \alias{prior_conversion_sgp}
 \title{Construct prior based on d-step prediction SD (for sgp)}
 \usage{
-prior_conversion_sgp(d, prior, a, m = 1)
+prior_conversion_sgp(d, prior, freq, period, a, m = 1)
 }
 \arguments{
 \item{d}{A numeric value for the prediction step.}
 
 \item{prior}{A list that contains alpha and u. This specifies the target prior on the d-step SD \eqn{\sigma(d)}, such that \eqn{P(\sigma(d) > u) = alpha}.}
+
+\item{freq}{The frequency of the sgp, ignored if a is provided.}
+
+\item{period}{The period of the sgp, ignored if a or freq is provided.}
 
 \item{a}{The frequency parameter of the sgp.}
 

@@ -20,7 +20,7 @@ lines of C++ code to be inserted in the log-likelihood section of
 the template. Should be NULL if no changes are to be made to this section.}
 
 \item{LOG_PRIOR}{A character string or vector containing the 
-lines of C++ code to be inserted in the log-prior (of the variance parameter) section of 
+lines of C++ code to be inserted in the log-prior (of the SD parameter) section of 
 the template. Should be NULL if no changes are to be made to this section.}
 
 \item{compile_template}{A indicator of whether the new template should be compiled. default is FALSE.}
@@ -32,5 +32,5 @@ A string representing the path to the temporary .so (or .dll) file
 \description{
 This function allows for the dynamic modification of a C++ template
 within the BayesGP package. Users can specify custom content for the 
-log-likelihood as well as the log-prior of the variance parameter in the template.
+log-likelihood as well as the log-prior of the SD parameter in the template.
 }

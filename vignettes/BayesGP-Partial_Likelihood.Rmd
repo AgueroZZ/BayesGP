@@ -8,6 +8,7 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
+oldpar <- par(no.readonly = TRUE)  # Save current settings 
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>", fig.height=3, fig.width=5, margins=TRUE
@@ -20,7 +21,6 @@ knitr::knit_hooks$set(margins = function(before, options, envir) {
 
 
 ```{r setup}
-options(warn=-1)
 library(BayesGP)
 ```
 
@@ -36,7 +36,7 @@ With `BayesGP`, one can specify the argument `family` to `"cc"`, `"casecrossover
 
 Here we will use a simulated dataset:
 ```{r}
-data <- as.data.frame(sim1data)
+data <- as.data.frame(ccData)
 data$exposure <- data$exposure
 mod <- model_fit(formula = case ~ f(x = exposure, 
                                     model = "IWP", 
@@ -90,6 +90,7 @@ samps_sex <- sample_fixed_effect(mod, variables = "sex")
 par(mfrow = c(1,2))
 hist(samps_age, main = "Samples for effect of age", xlab = "Effect")
 hist(samps_sex, main = "Samples for effect of sex", xlab = "Effect")
+par(oldpar)
 ```
 
  

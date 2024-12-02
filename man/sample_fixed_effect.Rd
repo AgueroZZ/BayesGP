@@ -11,6 +11,9 @@ sample_fixed_effect(model_fit, variables)
 
 \item{variables}{A vector of names of the target fixed variables to sample.}
 }
+\value{
+A matrix with columns being the posterior samples of the target fixed effect variables.
+}
 \description{
 Extract the posterior samples from the fitted model for the target fixed variables.
 }

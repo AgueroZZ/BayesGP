@@ -2,7 +2,7 @@
 % Please edit documentation in R/03_post_fit.R
 \name{sd_density}
 \alias{sd_density}
-\title{Obtain the posterior density of a variance parameter in the fitted model}
+\title{Obtain the posterior density of a SD parameter in the fitted model}
 \usage{
 sd_density(
   object,
@@ -15,14 +15,17 @@ sd_density(
 \arguments{
 \item{object}{The fitted object from the function `model_fit`.}
 
-\item{component}{The component of the variance parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.}
+\item{component}{The component of the SD parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.}
 
 \item{h}{For PSD, the unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.}
 
-\item{theta_logprior}{The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.}
+\item{theta_logprior}{The log prior function used on the selected SD parameter. By default is `NULL`, and the current Exponential prior will be used.}
 
 \item{MCMC_samps_only}{For model fitted with MCMC, whether only the posterior samples are needed.}
 }
+\value{
+A data.frame that contains the posterior and prior densities of the SD parameter. The SD parameter will be converted into PSD if applicable.
+}
 \description{
-Obtain the posterior density of a variance parameter in the fitted model
+Obtain the posterior density of a SD parameter in the fitted model
 }

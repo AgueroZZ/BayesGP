@@ -1,3 +1,4 @@
+#' @importFrom methods new is
 get_result_by_method <- function(response_var, data, instances, design_mat_fixed, family, control.family, control.fixed, fixed_effects, fixed_effects_names, offset_sum, aghq_k, size, cens, weight, strata, method, M, customized_template, option_list, envir = parent.frame(), extra_theta_num) {
   family <- tolower(family)
   if(is.null(customized_template)){
@@ -44,13 +45,13 @@ get_result_by_method <- function(response_var, data, instances, design_mat_fixed
   Xf <- list()
   
   w_count <- 0
-  # Need a theta for the Gaussian variance, so
+  # Need a theta for the Gaussian SD parameter, so
   # theta_count starts at 1 if Gaussian
   theta_count <- 0 + (family_type == 0)
   
   for (instance in instances) {
     # For each random effects
-    if (class(instance) == "iwp") {
+    if (methods::is(instance, "iwp")) {
       X[[length(X) + 1]] <- dgTMatrix_wrapper(instance@X)
       if(instance@order != 1){
       for (jj in 1:length(instance@boundary.prior$prec)) {
@@ -64,7 +65,7 @@ get_result_by_method <- function(response_var, data, instances, design_mat_fixed
       }
       w_count <- w_count + ncol(instance@X)
     }
-    else if(class(instance) == "sgp"){
+    else if(methods::is(instance, "sgp")){
       X[[length(X) + 1]] <- dgTMatrix_wrapper(instance@X)
       for (jj in 1:length(instance@boundary.prior$prec)) {
         betaprec[[length(betaprec) + 1]] <- instance@boundary.prior$prec[jj]
@@ -85,7 +86,7 @@ get_result_by_method <- function(response_var, data, instances, design_mat_fixed
     theta_count <- theta_count + 1
   }
   
-  # For the variance of the Gaussian family
+  # For the SD of the Gaussian family
   # From control.family, if applicable
   if (family_type == 0) {
     u[[length(u) + 1]] <- control.family$sd.prior$param$u
@@ -331,11 +332,16 @@ get_result_by_method <- function(response_var, data, instances, design_mat_fixed
 #' @param envir The environment in which the formula and other expressions are to be evaluated. 
 #'   Defaults to `parent.frame()`, which refers to the environment from which the function was called.
 #'   This allows the function to access variables that are defined in the calling function's scope.
+#' @param aghq_k An integer to specify the number of quadrature points used in the aghq method. By default, the value is 4.
+#' @param weight The name of the weight variable, should be one of the variables in `data`. The default value is "NULL", corresponding to a vector of 1s. This is only used for the Case-Crossover family, and denotes the weight of each observation.
+#' @param strata The name of the strata variable, should be one of the variables in `data`. The default value is "NULL". This is only used for the Case-Crossover family, and denotes the strata of each observation.
 #' @param extra_theta_num An integer number to indicate the extra number of parameters required in the 'theta' vector. Should only be specified when using customized template.
 #' @return A list that contains following items: the S4 objects for the random effects (instances), concatenated design matrix for
 #' the fixed effects (design_mat_fixed), fitted aghq (mod) and indexes to partition the posterior samples
 #' (boundary_samp_indexes, random_samp_indexes and fixed_samp_indexes).
 #'
+#' @importFrom stats nlminb model.matrix
+#' @importFrom methods is new
 #' @export
 model_fit <- function(formula, data, method = "aghq", family = "gaussian", control.family, control.fixed, aghq_k = 4, size = NULL, cens = NULL, weight = NULL, strata = NULL, M = 3000, customized_template = NULL, Customized_RE = NULL, option_list = list(), envir = parent.frame(), extra_theta_num = NULL) {
   # parse the input formula
@@ -780,10 +786,10 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
   for (instance in instances) {
     sum_col_ins <- sum_col_ins + ncol(instance@B)
     rand_effects_names <- c(rand_effects_names, instance@smoothing_var)
-    if (class(instance) == "iwp") {
+    if (methods::is(instance, "iwp")) {
       global_effects_names <- c(global_effects_names, instance@smoothing_var)
     }
-    else if (class(instance) == "sgp") {
+    else if (methods::is(instance, "sgp")) {
       global_effects_names <- c(global_effects_names, instance@smoothing_var)
     }
   }
@@ -793,7 +799,7 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
   cur_coef_start <- 1
   cur_coef_end <- 0
   for (instance in instances) {
-    if (class(instance) == "iwp") {
+    if (methods::is(instance, "iwp")) {
       cur_end <- cur_end + ncol(instance@X)
       if (instance@order == 1) {
         global_samp_indexes[[length(global_samp_indexes) + 1]] <- numeric()
@@ -801,7 +807,7 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         global_samp_indexes[[length(global_samp_indexes) + 1]] <- (cur_start:cur_end)
       }
     }
-    else if (class(instance) == "sgp") {
+    else if (methods::is(instance, "sgp")) {
       cur_end <- cur_end + ncol(instance@X)
       global_samp_indexes[[length(global_samp_indexes) + 1]] <- (cur_start:cur_end)
     }

@@ -1,30 +1,46 @@
 Package: BayesGP
 Type: Package
-Title: Efficient implementation of Gaussian process in Bayesian hierarchical models.
+Title: Efficient Implementation of Gaussian Process in Bayesian Hierarchical Models
 Version: 0.1.3
-Authors: Ziang Zhang, Yongwei Lin
-Maintainer: <aguero.zhang@mail.utoronto.ca>, <yongwei.lin@mail.utoronto.ca>
-Description: R package that implements a variety of Bayesian hierarchical model with flexible Gaussian processes prior
-License: file LICENSE
+Authors@R: c(person(given = "Ziang",
+                        family = "Zhang",
+                        role = c("aut", "cre"),
+                        email = "ziangzhang@uchicago.edu"),
+                 person(given = "Yongwei",
+                        family = "Lin",
+                        role = "aut"),
+                 person(given = "Alex",
+                        family = "Stringer",
+                        role = "aut"),
+                 person(given = "Patrick",
+                        family = "Brown",
+                        role = "aut"))
+Description: Implements Bayesian hierarchical models with flexible Gaussian process priors, focusing on Extended Latent Gaussian Models and incorporating various Gaussian process priors for Bayesian smoothing. Computations leverage finite element approximations and adaptive quadrature for efficient inference. Methods are detailed in Zhang, Stringer, Brown, and Stafford (2023) <doi:10.1177/09622802221134172>; Zhang, Stringer, Brown, and Stafford (2024) <doi:10.1080/10618600.2023.2289532>; Zhang, Brown, and Stafford (2023) <doi:10.48550/arXiv.2305.09914>; and Stringer, Brown, and Stafford (2021) <doi:10.1111/biom.13329>.
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
 LinkingTo: TMB (>= 1.9.7), 
 	   RcppEigen
 Imports: TMB (>= 1.9.7), 
-    RcppEigen,
+    numDeriv,
+    rstan,
+    sfsmisc,
     Matrix (>= 1.6.3),
     aghq (>= 0.4.1),
     fda,
     tmbstan,
-    LaplacesDemon
+    LaplacesDemon,
+    methods
 Depends: 
     R (>= 3.6.0)
 Suggests: 
     rmarkdown,
     knitr,
+    survival,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 NeedsCompilation: yes
 Packaged: 2024-06-16 19:43:27 UTC; ziangzhang
 Config/testthat/edition: 3
+

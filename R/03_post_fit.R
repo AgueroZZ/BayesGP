@@ -1,6 +1,6 @@
 #' @export
 #' @method summary FitResult
-summary.FitResult <- function(object) {
+summary.FitResult <- function(object, ...) {
   output <- post_table(object)
   class(output) <- "summary.FitResult"
   return(output)
@@ -8,7 +8,9 @@ summary.FitResult <- function(object) {
 
 #' @export
 #' @method print summary.FitResult
-print.summary.FitResult <- function(summary.FitResult) {
+#' @importFrom utils capture.output
+print.summary.FitResult <- function(x, ...) {
+  summary.FitResult <- x
   class(summary.FitResult) <- "data.frame"
   output <- capture.output(print(summary.FitResult))
   cat("Here are some posterior/prior summaries for the parameters: \n")
@@ -29,8 +31,11 @@ print.summary.FitResult <- function(summary.FitResult) {
 #' @param only.samples A logical variable indicating whether only the posterior samples are required. The default is FALSE, and the summary of posterior samples will be reported.
 #' @param quantiles A numeric vector of quantiles that predict.FitResult will produce, the default is c(0.025, 0.5, 0.975).
 #' @param boundary.condition A string specifies whether the boundary.condition should be considered in the prediction, should be one of c("yes", "no", "only"). The default option is "Yes".
+#' @param ... Other arguments to be passed to the function.
+#' @return A data.frame that contains the posterior mean and pointwise intervals (or posterior samples) at the locations specified in `newdata`.
 #' @export
-predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, include.intercept = TRUE, only.samples = FALSE, quantiles = c(0.025, 0.5, 0.975), boundary.condition = "Yes") {
+#' @importFrom methods new is
+predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, include.intercept = TRUE, only.samples = FALSE, quantiles = c(0.025, 0.5, 0.975), boundary.condition = "Yes", ...) {
   if(object$family == "Coxph" || object$family == "coxph"| object$family == "cc" | object$family == "casecrossover" | object$family == "CaseCrossover"){
     include.intercept = FALSE ## No intercept for coxph model
   }
@@ -49,7 +54,7 @@ predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, inclu
     if(boundary.condition == "only"){
       coefsamps <- 0 * coefsamps
     }
-    if (instance@smoothing_var == variable && class(instance) == "iwp") {
+    if (instance@smoothing_var == variable && methods::is(instance, "iwp")) {
       IWP <- instance
       ## Step 2: Initialization
       if (is.null(newdata)) {
@@ -73,7 +78,7 @@ predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, inclu
       )
       f[,1] <- f[,1] + IWP@initial_location
     }
-    else if (instance@smoothing_var == variable && class(instance) == "sgp") {
+    else if (instance@smoothing_var == variable && methods::is(instance, "sgp")) {
       sGP <- instance
       ## Step 2: Initialization
       if (is.null(newdata)) {
@@ -111,22 +116,27 @@ predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, inclu
   return(fpos)
 }
 
+#' @importFrom graphics matplot par title
+#' @importFrom methods new is
 #' @export
-plot.FitResult <- function(object) {
+plot.FitResult <- function(x, ...) {
+  object <- x
+  oldpar <- par(no.readonly = TRUE) 
+  on.exit(par(oldpar))  # Reset graphical parameters on exit
   par(ask = TRUE)
   
   ### Step 1: predict with newdata = NULL
   for (instance in object$instances) { ## for each variable in model_fit
-    if (class(instance) == "iwp") {
-      predict_result <- predict(object, variable = as.character(instance@smoothing_var))
+    if (methods::is(instance, "iwp")) {
+      predict_result <- predict.FitResult(object, variable = as.character(instance@smoothing_var))
       matplot(
         x = predict_result[,1], y = predict_result[, c("q0.5", "q0.025", "q0.975")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
         col = "black", type = "l",
         ylab = "effect", xlab = as.character(instance@smoothing_var)
       )
     }
-    if (class(instance) == "sgp") {
-      predict_result <- predict(object, variable = as.character(instance@smoothing_var))
+    if (methods::is(instance, "sgp")) {
+      predict_result <- predict.FitResult(object, variable = as.character(instance@smoothing_var))
       matplot(
         x = predict_result[,1], y = predict_result[, c("q0.5", "q0.025", "q0.975")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
         col = "black", type = "l",
@@ -135,7 +145,7 @@ plot.FitResult <- function(object) {
     }
   }
 
-  ### Step 2: plot any variance parameter
+  ### Step 2: plot any SD parameter
   if (object$family == "gaussian") {
     sd_plot(object = object, component = NULL)
     # add title
@@ -154,6 +164,7 @@ plot.FitResult <- function(object) {
 #' 
 #' @param model_fit The result from model_fit().
 #' @param variables A vector of names of the target fixed variables to sample.
+#' @return A matrix with columns being the posterior samples of the target fixed effect variables.
 #' @export
 sample_fixed_effect <- function(model_fit, variables){
   samps <- model_fit$samps$samps
@@ -190,11 +201,11 @@ sample_fixed_effect <- function(model_fit, variables){
 #'   lines(result[, (i + 1)] ~ result$x, lty = "dashed", ylim = c(-0.1, 0.1))
 #' }
 #' global_samps <- matrix(rnorm(n = (2 * 10), sd = 0.1), ncol = 10)
-#' result <- compute_post_fun_iwp(global_samps = global_samps, samps = samps, knots = knots, refined_x = seq(0, 1, by = 0.1), p = 2)
-#' plot(result[, 2] ~ result$x, type = "l", ylim = c(-0.3, 0.3))
-#' for (i in 1:9) {
-#'   lines(result[, (i + 1)] ~ result$x, lty = "dashed", ylim = c(-0.1, 0.1))
-#' }
+# result <- compute_post_fun_iwp(global_samps = global_samps[2, , drop = FALSE], samps = samps, knots = knots, refined_x = seq(0, 1, by = 0.1), p = 2, intercept_samps = global_samps[1,, drop = FALSE])
+# plot(result[, 2] ~ result$x, type = "l", ylim = c(-0.3, 0.3))
+# for (i in 1:9) {
+#   lines(result[, (i + 1)] ~ result$x, lty = "dashed", ylim = c(-0.1, 0.1))
+# }
 #' @export
 compute_post_fun_iwp <- function(samps, global_samps = NULL, knots, refined_x, p, degree = 0, intercept_samps = NULL) {
   if (p <= degree) {
@@ -255,6 +266,8 @@ compute_post_fun_iwp <- function(samps, global_samps = NULL, knots, refined_x, p
 #' @param a The frequency of sGP.
 #' @param m The number of harmonics to consider
 #' @param initial_location The initial location of the sGP.
+#' @param boundary A boolean variable to indicate whether the boundary condition should be considered in the prediction.
+#' @param intercept_samps A matrix that consists of posterior samples for the intercept parameter. If NULL, assume there is no intercept samples to adjust.
 #' @return A data.frame that contains different samples of the function, with the first column
 #' being the locations of evaluations x = refined_x.
 #' @export
@@ -284,6 +297,7 @@ compute_post_fun_sgp <- function(samps, global_samps = NULL, k, refined_x, a, re
 #' @param quantiles A numeric vector of quantiles to be computed.
 #' @return A dataframe with a column for evaluation locations x, and posterior mean and pointwise
 #' intervals at that set of locations.
+#' @importFrom stats quantile
 #' @export
 extract_mean_interval_given_samps <- function(samps, level = 0.95, quantiles = NULL) {
   x <- samps[, 1]
@@ -303,14 +317,17 @@ extract_mean_interval_given_samps <- function(samps, level = 0.95, quantiles = N
 
 
 
-#' Obtain the posterior density of a variance parameter in the fitted model
+#' Obtain the posterior density of a SD parameter in the fitted model
 #' 
 #' @param object The fitted object from the function `model_fit`.
-#' @param component The component of the variance parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.
+#' @param component The component of the SD parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.
 #' @param h For PSD, the unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
-#' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.
+#' @param theta_logprior The log prior function used on the selected SD parameter. By default is `NULL`, and the current Exponential prior will be used.
 #' @param MCMC_samps_only For model fitted with MCMC, whether only the posterior samples are needed.
+#' @return A data.frame that contains the posterior and prior densities of the SD parameter. The SD parameter will be converted into PSD if applicable.
 #' @export
+#' @importFrom stats density
+#' @importFrom methods is
 sd_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL, MCMC_samps_only = FALSE){
   postsigma <- NULL
   
@@ -363,11 +380,11 @@ sd_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL
             }
           }
           if(!is.null(h)){
-            if(class(instance) == "iwp"){
+            if(methods::is(instance, "iwp")){
               p <- instance@order
               correction <- sqrt((h^((2 * p) - 1)) / (((2 * p) - 1) * (factorial(p - 1)^2)))
             }
-            else if(class(instance) == "sgp"){
+            else if(methods::is(instance, "sgp")){
               correction <- 0
               for (j in 1:instance@m) {
                 correction <- correction + compute_d_step_sgpsd(d = h, a = (j*instance@a))
@@ -418,11 +435,11 @@ sd_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL
             }
           }
           if(!is.null(h)){
-            if(class(instance) == "iwp"){
+            if(methods::is(instance, "iwp")){
               p <- instance@order
               correction <- sqrt((h^((2 * p) - 1)) / (((2 * p) - 1) * (factorial(p - 1)^2)))
             }
-            else if(class(instance) == "sgp"){
+            else if(methods::is(instance, "sgp")){
               correction <- 0
               for (j in 1:instance@m) {
                 correction <- correction + compute_d_step_sgpsd(d = h, a = (j*instance@a))
@@ -454,12 +471,15 @@ sd_density <- function(object, component = NULL, h = NULL, theta_logprior = NULL
   return(postsigma)
 }
 
-#' Plot the posterior density of a variance parameter in the fitted model
+#' Plot the posterior density of a SD parameter in the fitted model
 #' 
 #' @param object The fitted object from the function `model_fit`.
-#' @param component The component of the variance parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.
+#' @param component The component of the SD parameter that you want to show. By default this is `NULL`, indicating the family.sd is of interest.
 #' @param h For PSD, the unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
-#' @param theta_logprior The log prior function used on the selected variance parameter. By default is `NULL`, and the current Exponential prior will be used.
+#' @param theta_logprior The log prior function used on the selected SD parameter. By default is `NULL`, and the current Exponential prior will be used.
+#' @importFrom graphics matplot legend
+#' @importFrom methods is new
+#' @return A plot that shows the posterior and prior density of the SD parameter. The SD parameter will be converted into PSD if applicable.
 #' @export
 sd_plot <- function(object, component = NULL, h = NULL, theta_logprior = NULL){
   hyper_result <- sd_density(object = object, component = component, h = h, theta_logprior = theta_logprior, MCMC_samps_only = FALSE)
@@ -477,6 +497,8 @@ sd_plot <- function(object, component = NULL, h = NULL, theta_logprior = NULL){
 #' Obtain the posterior and prior density of all the parameters in the fitted model
 #' 
 #' @param object The fitted object from the function `model_fit`.
+#' @importFrom stats density
+#' @return A list of data frames, each data frame contains the posterior density of the corresponding parameter.
 #' @export
 para_density <- function(object){
   result_list <- list()
@@ -499,8 +521,11 @@ para_density <- function(object){
 
 
 #' Obtain the posterior summary table for all the parameters in the fitted model
+#' @param object The fitted object from the function `model_fit`.
 #' @param quantiles The specified quantile to display the posterior summary, default is c(0.025, 0.975).
 #' @param digits The significant digits to be kept in the result, default is 3.
+#' @importFrom utils type.convert
+#' @return A data frame that contains the posterior summary of all the parameters in the fitted model.
 #' @export
 post_table <- function(object, quantiles = c(0.025, 0.975), digits = 3){
   all_density <- para_density(object)

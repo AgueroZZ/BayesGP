@@ -1,0 +1,97 @@
+---
+title: "BayesGP: Fitting Model with Partial Likelihood"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{BayesGP: Partial Likelihood}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+oldpar <- par(no.readonly = TRUE)  # Save current settings
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>", fig.height=3, fig.width=5, margins=TRUE
+)
+knitr::knit_hooks$set(margins = function(before, options, envir) {
+  if (!before) return()
+  graphics::par(mar = c(1.5 + 0.9, 1.5 + 0.9, 0.2, 0.2), mgp = c(1.45, 0.45, 0), cex = 1.25, bty='n')
+})
+```
+
+
+```{r setup}
+library(BayesGP)
+```
+
+# Partial Likelihood Models in BayesGP
+
+There are currently two implemented models in `BayesGP` that use the partial likelihood function for inference: the case-crossover model and the Cox Proportional Hazard (Coxph) model.
+
+
+
+## Case-Crossover Model
+
+With `BayesGP`, one can specify the argument `family` to `"cc"`, `"casecrossover"` or `"CaseCrossover"` to fit a case-crossover model.
+
+Here we will use a simulated dataset:
+```{r}
+data <- as.data.frame(ccData)
+data$exposure <- data$exposure
+mod <- model_fit(formula = case ~ f(x = exposure, 
+                                    model = "IWP", 
+                                    order = 2, k = 30,
+                                    initial_location = median(data$exposure), 
+                                    sd.prior = list(prior = "exp", param = list(u = 1, alpha = 0.5), h = 1)),
+                 family = "cc",
+                 strata = "subject",
+                 weight = NULL,
+                 data = data,
+                 method = "aghq")
+
+```
+
+To take a look at its result:
+
+```{r}
+true_effect <- function(x) {3 *(x^2 - .5^2)}
+plot(mod)
+lines(I(true_effect(seq(0,1,by = 0.1)) - true_effect(median(data$exposure))) ~ seq(0,1,by = 0.1), col = "red")
+```
+
+Here the true effect used to simulate the data is shown as the red line. It is important to know that for case-crossover model, the intercept parameter and the `strata` level effects will not be identifiable.
+
+
+
+## CoxPH Model
+
+
+For Cox Proportional Hazard Model, one can specify the argument `family` to `"coxph` to fit a CoxPH model with its partial likelihood.
+
+Here we will illustrate with the `kidney` example from the `survival` package.
+
+```{r}
+data <- survival::kidney
+head(data)
+mod <- model_fit(formula = time ~ age + sex + f(x = id, 
+                                    model = "IID", 
+                                    sd.prior = list(prior = "exp", param = list(u = 1, alpha = 0.5))),
+                 family = "coxph",
+                 cens = "status",
+                 data = data,
+                 method = "aghq")
+```
+
+Take a look at the posterior for each fixed effect:
+
+```{r}
+samps_age <- sample_fixed_effect(mod, variables = "age")
+samps_sex <- sample_fixed_effect(mod, variables = "sex")
+par(mfrow = c(1,2))
+hist(samps_age, main = "Samples for effect of age", xlab = "Effect")
+hist(samps_sex, main = "Samples for effect of sex", xlab = "Effect")
+par(oldpar)
+```
+
+ 
+

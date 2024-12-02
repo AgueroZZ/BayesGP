@@ -1,6 +1,12 @@
 #' Function defined to enhance the usability for users on IDEs.
+#' @param smoothing_var The variable name of the smoothing variable.
+#' @param model The name of the smoothing model.
+#' @param sd.prior A list/vector that specifies the prior of the sd parameter.
+#' @param boundary.prior A list/vector that specifies the prior of the boundary parameter.
+#' @param initial_location A character/number that specifies the initial location of the smoothing variable.
+#' @return A call object that can be used in the model_fit formula to indicate a smooth term or random effect.
 #' @export
-f <- function(smoothing_var, model = "iid", sd.prior = NULL, boundary.prior = NULL, initial_location = c("middle", "left", "right"), ...) {
+f <- function(smoothing_var, model = "iid", sd.prior = NULL, boundary.prior = NULL, initial_location = c("middle", "left", "right")) {
   # Capture the full call
   mc <- match.call(expand.dots = TRUE)
   
@@ -20,6 +26,7 @@ f <- function(smoothing_var, model = "iid", sd.prior = NULL, boundary.prior = NU
   return(mc)
 }
 
+#' @importFrom stats terms
 parse_formula <- function(formula) {
   components <- as.list(attributes(terms(formula))$ variables)
   fixed_effects <- list()
@@ -79,6 +86,7 @@ setClass("customized", slots = list(
 
 #' @import Matrix
 #' @importClassesFrom Matrix dgCMatrix
+#' @importFrom methods as
 Compute_Q_sB <- function(a,k,region, accuracy = 5000, boundary = TRUE){
   ss <- function(M) {Matrix::forceSymmetric(M + Matrix::t(M))}
   if((accuracy %% 1) == 0){
@@ -235,7 +243,7 @@ setGeneric("compute_B", function(object) {
 setMethod("compute_B", signature = "iid", function(object) {
   smoothing_var <- object@smoothing_var
   x <- as.factor((object@data)[[smoothing_var]])
-  B <- model.matrix(~ -1 + x)
+  B <- stats::model.matrix(~ -1 + x)
   B
 })
 setMethod("compute_B", signature = "customized", function(object) {
@@ -289,7 +297,7 @@ setMethod("compute_P", signature = "sgp", function(object) {
       Q <- bdiag(Q, Compute_Q_sB(a = (i*a), k = k, region = region, accuracy = accuracy))
     }
   }
-  as(Q, "matrix")
+  methods::as(Q, "matrix")
 })
 
 
@@ -335,11 +343,9 @@ setMethod("global_poly", signature = "sgp", function(object) {
 
 #' Constructing the precision matrix given the knot sequence
 #'
-#' @param x A vector of knots used to construct the O-spline basis, first knot should be viewed as "0",
-#' the reference starting location. These k knots will define (k-1) basis function in total.
+#' @param object A fitted model object.
 #' @return A precision matrix of the corresponding basis function, should be diagonal matrix with
 #' size (k-1) by (k-1).
-#' @export
 setGeneric("compute_weights_precision", function(object) {
   standardGeneric("compute_weights_precision")
 })
@@ -360,7 +366,7 @@ setMethod("compute_weights_precision", signature = "iwp", function(object) {
     d2 <- diff(knots_pos)
     Precweights1 <- diag(d1)
     Precweights2 <- diag(d2)
-    as(Matrix::bdiag(Precweights1, Precweights2), "matrix")
+    methods::as(Matrix::bdiag(Precweights1, Precweights2), "matrix")
   }
 })
 
@@ -371,7 +377,7 @@ setMethod("compute_weights_precision", signature = "iwp", function(object) {
 #' @return A precision matrix of the corresponding basis function, should be diagonal matrix with
 #' size (k-1) by (k-1).
 #' @examples
-#' compute_weights_precision(x = c(0,0.2,0.4,0.6,0.8))
+#' compute_weights_precision_helper(x = c(0,0.2,0.4,0.6,0.8))
 #' @export
 compute_weights_precision_helper <- function(x){
   d <- diff(x)
@@ -412,7 +418,7 @@ get_local_poly <- function(knots, refined_x, p) {
 #' value at ith element of refined_x, the ncol should equal to number of knots minus 1, and nrow
 #' should equal to the number of elements in refined_x.
 #' @examples
-#' local_poly(knots = c(0, 0.2, 0.4, 0.6, 0.8), refined_x = seq(0, 0.8, by = 0.1), p = 2)
+#' local_poly_helper(knots = c(0, 0.2, 0.4, 0.6, 0.8), refined_x = seq(0, 0.8, by = 0.1), p = 2)
 #' @export
 local_poly_helper <- function(knots, refined_x, p = 2, neg_sign_order = 0) {
   if (min(knots) >= 0) {
@@ -449,7 +455,7 @@ local_poly_helper <- function(knots, refined_x, p = 2, neg_sign_order = 0) {
 #' value at ith element of x, the ncol should equal to p, and nrow
 #' should equal to the number of elements in x
 #' @examples
-#' global_poly(x = c(0, 0.2, 0.4, 0.6, 0.8), p = 2)
+#' global_poly_helper(x = c(0, 0.2, 0.4, 0.6, 0.8), p = 2)
 #' @export
 global_poly_helper <- function(x, p = 2) {
   result <- NULL
@@ -464,6 +470,7 @@ global_poly_helper <- function(x, p = 2) {
 #' @param refined_x A vector of locations to evaluate the sB basis
 #' @param a The frequency of sgp.
 #' @param m The number of harmonics to consider
+#' @param initial_location The value of the initial location. If NULL, the minimum value of refined_x will be used.
 #' @return A matrix with i,j componet being the value of jth basis function
 #' value at ith element of x, the ncol should equal to (2*m), and nrow
 #' should equal to the number of elements in x
@@ -508,10 +515,20 @@ compute_d_step_sgpsd <- function(d,a){
 #' @param prior A list that contains alpha and u. This specifies the target prior on the d-step SD \eqn{\sigma(d)}, such that \eqn{P(\sigma(d) > u) = alpha}.
 #' @param d A numeric value for the prediction step.
 #' @param a The frequency parameter of the sgp.
+#' @param freq The frequency of the sgp, ignored if a is provided.
+#' @param period The period of the sgp, ignored if a or freq is provided.
 #' @param m The number of harmonics that should be considered, by default m = 1 represents only the sgp.
 #' @return A list that contains alpha and u. The prior for the smoothness parameter \eqn{\sigma} such that \eqn{P(\sigma > u) = alpha}, that yields the ideal prior on the d-step SD.
 #' @export
-prior_conversion_sgp <- function(d, prior, a, m = 1) {
+prior_conversion_sgp <- function(d, prior, freq, period, a, m = 1) {
+  if(is.null(a)){
+    if(!is.null(freq)){
+      a <- (2*pi*freq)
+    }
+    else{
+      a <- (2*pi/period)
+    }
+  }
   correction_factor <- 0
   for (i in 1:m) {
     correction_factor <- correction_factor + compute_d_step_sgpsd(d = d, a = (i*a))
@@ -522,12 +539,26 @@ prior_conversion_sgp <- function(d, prior, a, m = 1) {
 
 #' @import Matrix
 #' @importClassesFrom Matrix dgCMatrix
+#' @importFrom methods as
 dgTMatrix_wrapper <- function(matrix) {
   # result <- as(as(as(matrix, "dMatrix"), "generalMatrix"), "TsparseMatrix")
   result <- as(matrix, "dgCMatrix")
   result
 }
 
+
+
+#' Get default options for MCMC implementation
+#'
+#' This function takes an optional list of options and fills in any missing values with a set of default MCMC options.
+#'
+#' @param option_list A list of options to be passed to the MCMC. If some options are missing, the function will use default values.
+#' @return A list containing the complete set of options with defaults where necessary.
+#' @examples
+#' # Example: Get the default option list
+#' options <- get_default_option_list_MCMC()
+#' print(options)
+#' 
 #' @export
 get_default_option_list_MCMC <- function(option_list = list()){
   default_options <- list(chains = 1, cores = 1, init = "random", seed = 123, warmup = 10000, silent = TRUE, laplace = FALSE)
@@ -545,7 +576,7 @@ get_default_option_list_MCMC <- function(option_list = list()){
 #'
 #' This function allows for the dynamic modification of a C++ template
 #' within the BayesGP package. Users can specify custom content for the 
-#' log-likelihood as well as the log-prior of the variance parameter in the template.
+#' log-likelihood as well as the log-prior of the SD parameter in the template.
 #' 
 #' 
 #' @param SETUP A character string or vector containing the 
@@ -554,7 +585,7 @@ get_default_option_list_MCMC <- function(option_list = list()){
 #'   lines of C++ code to be inserted in the log-likelihood section of 
 #'   the template. Should be NULL if no changes are to be made to this section.
 #' @param LOG_PRIOR A character string or vector containing the 
-#'   lines of C++ code to be inserted in the log-prior (of the variance parameter) section of 
+#'   lines of C++ code to be inserted in the log-prior (of the SD parameter) section of 
 #'   the template. Should be NULL if no changes are to be made to this section.
 #' @param compile_template A indicator of whether the new template should be compiled. default is FALSE.
 #' @return A string representing the path to the temporary .so (or .dll) file

@@ -1,0 +1,222 @@
+* using log directory ‘/Users/ziangzhang/Desktop/BayesGP/BayesGP.Rcheck’
+* using R version 4.3.1 (2023-06-16)
+* using platform: aarch64-apple-darwin20 (64-bit)
+* R was compiled by
+    Apple clang version 14.0.0 (clang-1400.0.29.202)
+    GNU Fortran (GCC) 12.2.0
+* running under: macOS Monterey 12.7.4
+* using session charset: UTF-8
+* using option ‘--as-cran’
+* checking for file ‘BayesGP/DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘BayesGP’ version ‘0.1.3’
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... NOTE
+Maintainer: ‘Ziang Zhang <ziangzhang@uchicago.edu>’
+
+New submission
+
+Non-FOSS package license (file LICENSE)
+
+The Title field should be in title case. Current version is:
+‘Efficient implementation of Gaussian process in Bayesian hierarchical models’
+In title case that is:
+‘Efficient Implementation of Gaussian Process in Bayesian Hierarchical Models’
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘BayesGP’ can be installed ... [24s/25s] OK
+* used C++ compiler: ‘Apple clang version 13.1.6 (clang-1316.0.21.2.5)’
+* used SDK: ‘MacOSX12.3.sdk’
+* checking installed package size ... NOTE
+  installed size is 13.3Mb
+  sub-directories of 1Mb or more:
+    libs  12.2Mb
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking ‘build’ directory ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking R files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking contents of ‘data’ directory ... OK
+* checking data for non-ASCII characters ... OK
+* checking LazyData ... OK
+* checking data for ASCII and uncompressed saves ... OK
+* checking line endings in C/C++/Fortran sources/headers ... OK
+* checking pragmas in C/C++ headers and code ... OK
+* checking compilation flags used ... OK
+* checking compiled code ... OK
+* checking installed files from ‘inst/doc’ ... OK
+* checking files in ‘vignettes’ ... OK
+* checking examples ... OK
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... OK
+  Running ‘testthat.R’
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes in ‘inst/doc’ ... OK
+* checking re-building of vignette outputs ... [14s/14s] OK
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... NOTE
+Found the following HTML validation problems:
+PEN_death.html:4:1 (PEN_death.Rd:6): Warning: <link> inserting "type" attribute
+PEN_death.html:12:1 (PEN_death.Rd:6): Warning: <script> proprietary attribute "onload"
+PEN_death.html:12:1 (PEN_death.Rd:6): Warning: <script> inserting "type" attribute
+PEN_death.html:17:1 (PEN_death.Rd:6): Warning: <table> lacks "summary" attribute
+ccData.html:4:1 (ccData.Rd:6): Warning: <link> inserting "type" attribute
+ccData.html:12:1 (ccData.Rd:6): Warning: <script> proprietary attribute "onload"
+ccData.html:12:1 (ccData.Rd:6): Warning: <script> inserting "type" attribute
+ccData.html:17:1 (ccData.Rd:6): Warning: <table> lacks "summary" attribute
+compute_d_step_sgpsd.html:4:1 (compute_d_step_sgpsd.Rd:5): Warning: <link> inserting "type" attribute
+compute_d_step_sgpsd.html:12:1 (compute_d_step_sgpsd.Rd:5): Warning: <script> proprietary attribute "onload"
+compute_d_step_sgpsd.html:12:1 (compute_d_step_sgpsd.Rd:5): Warning: <script> inserting "type" attribute
+compute_d_step_sgpsd.html:17:1 (compute_d_step_sgpsd.Rd:5): Warning: <table> lacks "summary" attribute
+compute_d_step_sgpsd.html:35:1 (compute_d_step_sgpsd.Rd:10): Warning: <table> lacks "summary" attribute
+compute_post_fun_iwp.html:4:1 (compute_post_fun_iwp.Rd:5): Warning: <link> inserting "type" attribute
+compute_post_fun_iwp.html:12:1 (compute_post_fun_iwp.Rd:5): Warning: <script> proprietary attribute "onload"
+compute_post_fun_iwp.html:12:1 (compute_post_fun_iwp.Rd:5): Warning: <script> inserting "type" attribute
+compute_post_fun_iwp.html:17:1 (compute_post_fun_iwp.Rd:5): Warning: <table> lacks "summary" attribute
+compute_post_fun_iwp.html:45:1 (compute_post_fun_iwp.Rd:19): Warning: <table> lacks "summary" attribute
+compute_post_fun_sgp.html:4:1 (compute_post_fun_sgp.Rd:5): Warning: <link> inserting "type" attribute
+compute_post_fun_sgp.html:12:1 (compute_post_fun_sgp.Rd:5): Warning: <script> proprietary attribute "onload"
+compute_post_fun_sgp.html:12:1 (compute_post_fun_sgp.Rd:5): Warning: <script> inserting "type" attribute
+compute_post_fun_sgp.html:17:1 (compute_post_fun_sgp.Rd:5): Warning: <table> lacks "summary" attribute
+compute_post_fun_sgp.html:48:1 (compute_post_fun_sgp.Rd:22): Warning: <table> lacks "summary" attribute
+compute_weights_precision.html:4:1 (compute_weights_precision.Rd:5): Warning: <link> inserting "type" attribute
+compute_weights_precision.html:12:1 (compute_weights_precision.Rd:5): Warning: <script> proprietary attribute "onload"
+compute_weights_precision.html:12:1 (compute_weights_precision.Rd:5): Warning: <script> inserting "type" attribute
+compute_weights_precision.html:17:1 (compute_weights_precision.Rd:5): Warning: <table> lacks "summary" attribute
+compute_weights_precision.html:35:1 (compute_weights_precision.Rd:10): Warning: <table> lacks "summary" attribute
+compute_weights_precision_helper.html:4:1 (compute_weights_precision_helper.Rd:5): Warning: <link> inserting "type" attribute
+compute_weights_precision_helper.html:12:1 (compute_weights_precision_helper.Rd:5): Warning: <script> proprietary attribute "onload"
+compute_weights_precision_helper.html:12:1 (compute_weights_precision_helper.Rd:5): Warning: <script> inserting "type" attribute
+compute_weights_precision_helper.html:17:1 (compute_weights_precision_helper.Rd:5): Warning: <table> lacks "summary" attribute
+compute_weights_precision_helper.html:35:1 (compute_weights_precision_helper.Rd:10): Warning: <table> lacks "summary" attribute
+covid_canada.html:59:80 (covid_canada.Rd:20): Warning: replacing invalid character code 128
+covid_canada.html:59:81 (covid_canada.Rd:20): Warning: replacing invalid character code 147
+covid_canada.html:4:1 (covid_canada.Rd:6): Warning: <link> inserting "type" attribute
+covid_canada.html:12:1 (covid_canada.Rd:6): Warning: <script> proprietary attribute "onload"
+covid_canada.html:12:1 (covid_canada.Rd:6): Warning: <script> inserting "type" attribute
+covid_canada.html:17:1 (covid_canada.Rd:6): Warning: <table> lacks "summary" attribute
+custom_template.html:4:1 (custom_template.Rd:5): Warning: <link> inserting "type" attribute
+custom_template.html:12:1 (custom_template.Rd:5): Warning: <script> proprietary attribute "onload"
+custom_template.html:12:1 (custom_template.Rd:5): Warning: <script> inserting "type" attribute
+custom_template.html:17:1 (custom_template.Rd:5): Warning: <table> lacks "summary" attribute
+custom_template.html:42:1 (custom_template.Rd:15): Warning: <table> lacks "summary" attribute
+dummy.html:4:1 (dummy.Rd:5): Warning: <link> inserting "type" attribute
+dummy.html:12:1 (dummy.Rd:5): Warning: <script> proprietary attribute "onload"
+dummy.html:12:1 (dummy.Rd:5): Warning: <script> inserting "type" attribute
+dummy.html:17:1 (dummy.Rd:5): Warning: <table> lacks "summary" attribute
+extract_mean_interval_given_samps.html:4:1 (extract_mean_interval_given_samps.Rd:5): Warning: <link> inserting "type" attribute
+extract_mean_interval_given_samps.html:12:1 (extract_mean_interval_given_samps.Rd:5): Warning: <script> proprietary attribute "onload"
+extract_mean_interval_given_samps.html:12:1 (extract_mean_interval_given_samps.Rd:5): Warning: <script> inserting "type" attribute
+extract_mean_interval_given_samps.html:17:1 (extract_mean_interval_given_samps.Rd:5): Warning: <table> lacks "summary" attribute
+extract_mean_interval_given_samps.html:35:1 (extract_mean_interval_given_samps.Rd:10): Warning: <table> lacks "summary" attribute
+f.html:4:1 (f.Rd:5): Warning: <link> inserting "type" attribute
+f.html:12:1 (f.Rd:5): Warning: <script> proprietary attribute "onload"
+f.html:12:1 (f.Rd:5): Warning: <script> inserting "type" attribute
+f.html:17:1 (f.Rd:5): Warning: <table> lacks "summary" attribute
+f.html:41:1 (f.Rd:16): Warning: <table> lacks "summary" attribute
+get_default_option_list_MCMC.html:4:1 (get_default_option_list_MCMC.Rd:5): Warning: <link> inserting "type" attribute
+get_default_option_list_MCMC.html:12:1 (get_default_option_list_MCMC.Rd:5): Warning: <script> proprietary attribute "onload"
+get_default_option_list_MCMC.html:12:1 (get_default_option_list_MCMC.Rd:5): Warning: <script> inserting "type" attribute
+get_default_option_list_MCMC.html:17:1 (get_default_option_list_MCMC.Rd:5): Warning: <table> lacks "summary" attribute
+get_default_option_list_MCMC.html:35:1 (get_default_option_list_MCMC.Rd:10): Warning: <table> lacks "summary" attribute
+global_poly_helper.html:4:1 (global_poly_helper.Rd:5): Warning: <link> inserting "type" attribute
+global_poly_helper.html:12:1 (global_poly_helper.Rd:5): Warning: <script> proprietary attribute "onload"
+global_poly_helper.html:12:1 (global_poly_helper.Rd:5): Warning: <script> inserting "type" attribute
+global_poly_helper.html:17:1 (global_poly_helper.Rd:5): Warning: <table> lacks "summary" attribute
+global_poly_helper.html:35:1 (global_poly_helper.Rd:10): Warning: <table> lacks "summary" attribute
+global_poly_helper_sgp.html:4:1 (global_poly_helper_sgp.Rd:5): Warning: <link> inserting "type" attribute
+global_poly_helper_sgp.html:12:1 (global_poly_helper_sgp.Rd:5): Warning: <script> proprietary attribute "onload"
+global_poly_helper_sgp.html:12:1 (global_poly_helper_sgp.Rd:5): Warning: <script> inserting "type" attribute
+global_poly_helper_sgp.html:17:1 (global_poly_helper_sgp.Rd:5): Warning: <table> lacks "summary" attribute
+global_poly_helper_sgp.html:35:1 (global_poly_helper_sgp.Rd:10): Warning: <table> lacks "summary" attribute
+local_poly_helper.html:4:1 (local_poly_helper.Rd:5): Warning: <link> inserting "type" attribute
+local_poly_helper.html:12:1 (local_poly_helper.Rd:5): Warning: <script> proprietary attribute "onload"
+local_poly_helper.html:12:1 (local_poly_helper.Rd:5): Warning: <script> inserting "type" attribute
+local_poly_helper.html:17:1 (local_poly_helper.Rd:5): Warning: <table> lacks "summary" attribute
+local_poly_helper.html:35:1 (local_poly_helper.Rd:10): Warning: <table> lacks "summary" attribute
+model_fit.html:4:1 (model_fit.Rd:5): Warning: <link> inserting "type" attribute
+model_fit.html:12:1 (model_fit.Rd:5): Warning: <script> proprietary attribute "onload"
+model_fit.html:12:1 (model_fit.Rd:5): Warning: <script> inserting "type" attribute
+model_fit.html:17:1 (model_fit.Rd:5): Warning: <table> lacks "summary" attribute
+model_fit.html:55:1 (model_fit.Rd:28): Warning: <table> lacks "summary" attribute
+model_fit_loop.html:4:1 (model_fit_loop.Rd:5): Warning: <link> inserting "type" attribute
+model_fit_loop.html:12:1 (model_fit_loop.Rd:5): Warning: <script> proprietary attribute "onload"
+model_fit_loop.html:12:1 (model_fit_loop.Rd:5): Warning: <script> inserting "type" attribute
+model_fit_loop.html:17:1 (model_fit_loop.Rd:5): Warning: <table> lacks "summary" attribute
+model_fit_loop.html:46:1 (model_fit_loop.Rd:19): Warning: <table> lacks "summary" attribute
+para_density.html:4:1 (para_density.Rd:5): Warning: <link> inserting "type" attribute
+para_density.html:12:1 (para_density.Rd:5): Warning: <script> proprietary attribute "onload"
+para_density.html:12:1 (para_density.Rd:5): Warning: <script> inserting "type" attribute
+para_density.html:17:1 (para_density.Rd:5): Warning: <table> lacks "summary" attribute
+para_density.html:35:1 (para_density.Rd:10): Warning: <table> lacks "summary" attribute
+post_table.html:4:1 (post_table.Rd:5): Warning: <link> inserting "type" attribute
+post_table.html:12:1 (post_table.Rd:5): Warning: <script> proprietary attribute "onload"
+post_table.html:12:1 (post_table.Rd:5): Warning: <script> inserting "type" attribute
+post_table.html:17:1 (post_table.Rd:5): Warning: <table> lacks "summary" attribute
+post_table.html:35:1 (post_table.Rd:10): Warning: <table> lacks "summary" attribute
+predict.FitResult.html:4:1 (predict.FitResult.Rd:5): Warning: <link> inserting "type" attribute
+predict.FitResult.html:12:1 (predict.FitResult.Rd:5): Warning: <script> proprietary attribute "onload"
+predict.FitResult.html:12:1 (predict.FitResult.Rd:5): Warning: <script> inserting "type" attribute
+predict.FitResult.html:17:1 (predict.FitResult.Rd:5): Warning: <table> lacks "summary" attribute
+predict.FitResult.html:46:1 (predict.FitResult.Rd:20): Warning: <table> lacks "summary" attribute
+prior_conversion_iwp.html:4:1 (prior_conversion_iwp.Rd:5): Warning: <link> inserting "type" attribute
+prior_conversion_iwp.html:12:1 (prior_conversion_iwp.Rd:5): Warning: <script> proprietary attribute "onload"
+prior_conversion_iwp.html:12:1 (prior_conversion_iwp.Rd:5): Warning: <script> inserting "type" attribute
+prior_conversion_iwp.html:17:1 (prior_conversion_iwp.Rd:5): Warning: <table> lacks "summary" attribute
+prior_conversion_iwp.html:35:1 (prior_conversion_iwp.Rd:10): Warning: <table> lacks "summary" attribute
+prior_conversion_sgp.html:4:1 (prior_conversion_sgp.Rd:5): Warning: <link> inserting "type" attribute
+prior_conversion_sgp.html:12:1 (prior_conversion_sgp.Rd:5): Warning: <script> proprietary attribute "onload"
+prior_conversion_sgp.html:12:1 (prior_conversion_sgp.Rd:5): Warning: <script> inserting "type" attribute
+prior_conversion_sgp.html:17:1 (prior_conversion_sgp.Rd:5): Warning: <table> lacks "summary" attribute
+prior_conversion_sgp.html:35:1 (prior_conversion_sgp.Rd:10): Warning: <table> lacks "summary" attribute
+sample_fixed_effect.html:4:1 (sample_fixed_effect.Rd:5): Warning: <link> inserting "type" attribute
+sample_fixed_effect.html:12:1 (sample_fixed_effect.Rd:5): Warning: <script> proprietary attribute "onload"
+sample_fixed_effect.html:12:1 (sample_fixed_effect.Rd:5): Warning: <script> inserting "type" attribute
+sample_fixed_effect.html:17:1 (sample_fixed_effect.Rd:5): Warning: <table> lacks "summary" attribute
+sample_fixed_effect.html:35:1 (sample_fixed_effect.Rd:10): Warning: <table> lacks "summary" attribute
+sd_density.html:4:1 (sd_density.Rd:5): Warning: <link> inserting "type" attribute
+sd_density.html:12:1 (sd_density.Rd:5): Warning: <script> proprietary attribute "onload"
+sd_density.html:12:1 (sd_density.Rd:5): Warning: <script> inserting "type" attribute
+sd_density.html:17:1 (sd_density.Rd:5): Warning: <table> lacks "summary" attribute
+sd_density.html:41:1 (sd_density.Rd:16): Warning: <table> lacks "summary" attribute
+sd_plot.html:4:1 (sd_plot.Rd:5): Warning: <link> inserting "type" attribute
+sd_plot.html:12:1 (sd_plot.Rd:5): Warning: <script> proprietary attribute "onload"
+sd_plot.html:12:1 (sd_plot.Rd:5): Warning: <script> inserting "type" attribute
+sd_plot.html:17:1 (sd_plot.Rd:5): Warning: <table> lacks "summary" attribute
+sd_plot.html:35:1 (sd_plot.Rd:10): Warning: <table> lacks "summary" attribute
+Skipping checking math rendering: package 'V8' unavailable
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: 3 NOTEs

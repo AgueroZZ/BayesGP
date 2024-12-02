@@ -1,0 +1,55 @@
+PEN_death               The monthly all-cause mortality for male with
+                        age less than 40 in Pennsylvania.
+ccData                  A simulated dataset from the case-crossover
+                        model.
+compute_d_step_sgpsd    Compute the SD correction factor for sgp
+compute_post_fun_iwp    Computing the posterior samples of the function
+                        or its derivative using the posterior samples
+                        of the basis coefficients for iwp
+compute_post_fun_sgp    Computing the posterior samples of the function
+                        using the posterior samples of the basis
+                        coefficients for sGP
+compute_weights_precision
+                        Constructing the precision matrix given the
+                        knot sequence
+compute_weights_precision_helper
+                        Constructing the precision matrix given the
+                        knot sequence (helper)
+covid_canada            The COVID-19 daily death data in Canada.
+custom_template         Custom Template Function
+dummy                   Roxygen commands
+extract_mean_interval_given_samps
+                        Construct posterior inference given samples
+f                       Function defined to enhance the usability for
+                        users on IDEs.
+get_default_option_list_MCMC
+                        Get default options for MCMC implementation
+global_poly_helper      Constructing and evaluating the global
+                        polynomials, to account for boundary conditions
+                        (design matrix)
+global_poly_helper_sgp
+                        Constructing and evaluating the global
+                        polynomials, to account for boundary conditions
+                        (design matrix) of sgp
+local_poly_helper       Constructing and evaluating the local O-spline
+                        basis (design matrix)
+model_fit               Model fitting with random effects/fixed effects
+model_fit_loop          Repeated fitting Bayesian Hierarchical Models
+                        for a sequence of values of the looping
+                        variable.
+para_density            Obtain the posterior and prior density of all
+                        the parameters in the fitted model
+post_table              Obtain the posterior summary table for all the
+                        parameters in the fitted model
+predict.FitResult       To predict the GP component in the fitted
+                        model, at the locations specified in 'newdata'.
+prior_conversion_iwp    Construct prior based on d-step prediction SD
+                        (for iwp)
+prior_conversion_sgp    Construct prior based on d-step prediction SD
+                        (for sgp)
+sample_fixed_effect     Extract the posterior samples from the fitted
+                        model for the target fixed variables.
+sd_density              Obtain the posterior density of a variance
+                        parameter in the fitted model
+sd_plot                 Plot the posterior density of a variance
+                        parameter in the fitted model

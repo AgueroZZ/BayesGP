@@ -1,0 +1,6 @@
+name	user	system	elapsed
+compute_post_fun_iwp	0.012	0.000	0.012	
+compute_weights_precision_helper	0	0	0	
+get_default_option_list_MCMC	0.000	0.000	0.001	
+global_poly_helper	0	0	0	
+local_poly_helper	0	0	0	

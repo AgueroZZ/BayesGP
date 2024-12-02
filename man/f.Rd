@@ -9,9 +9,22 @@ f(
   model = "iid",
   sd.prior = NULL,
   boundary.prior = NULL,
-  initial_location = c("middle", "left", "right"),
-  ...
+  initial_location = c("middle", "left", "right")
 )
+}
+\arguments{
+\item{smoothing_var}{The variable name of the smoothing variable.}
+
+\item{model}{The name of the smoothing model.}
+
+\item{sd.prior}{A list/vector that specifies the prior of the sd parameter.}
+
+\item{boundary.prior}{A list/vector that specifies the prior of the boundary parameter.}
+
+\item{initial_location}{A character/number that specifies the initial location of the smoothing variable.}
+}
+\value{
+A call object that can be used in the model_fit formula to indicate a smooth term or random effect.
 }
 \description{
 Function defined to enhance the usability for users on IDEs.

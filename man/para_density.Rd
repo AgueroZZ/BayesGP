@@ -9,6 +9,9 @@ para_density(object)
 \arguments{
 \item{object}{The fitted object from the function `model_fit`.}
 }
+\value{
+A list of data frames, each data frame contains the posterior density of the corresponding parameter.
+}
 \description{
 Obtain the posterior and prior density of all the parameters in the fitted model
 }

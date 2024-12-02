@@ -1,0 +1,21 @@
+Package: BayesGP
+Type: Package
+Title: Efficient implementation of Gaussian process in Bayesian
+        hierarchical models
+Version: 0.1.3
+Author: Ziang Zhang, Yongwei Lin, Alex Stringer, Patrick Brown
+Maintainer: Ziang Zhang <ziangzhang@uchicago.edu>
+Description: R package that implements a variety of Bayesian hierarchical model with flexible Gaussian processes prior.
+License: file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+LinkingTo: TMB (>= 1.9.7), RcppEigen
+Imports: TMB (>= 1.9.7), numDeriv, rstan, sfsmisc, Matrix (>= 1.6.3),
+        aghq (>= 0.4.1), fda, tmbstan, LaplacesDemon, methods
+Depends: R (>= 3.6.0)
+Suggests: rmarkdown, knitr, survival, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+NeedsCompilation: yes
+Packaged: 2024-10-21 23:21:47 UTC; ziangzhang
+Config/testthat/edition: 3

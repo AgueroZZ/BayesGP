@@ -1,0 +1,128 @@
+---
+title: "BayesGP: Fitting sGP"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{BayesGP: Fitting sGP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+oldpar <- par(no.readonly = TRUE)  # Save current settings
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>", fig.height=3, fig.width=5, margins=TRUE
+)
+knitr::knit_hooks$set(margins = function(before, options, envir) {
+  if (!before) return()
+  graphics::par(mar = c(1.5 + 0.9, 1.5 + 0.9, 0.2, 0.2), mgp = c(1.45, 0.45, 0), cex = 1.25, bty='n')
+})
+```
+
+
+```{r setup}
+library(BayesGP)
+```
+
+# Fitting sGP
+
+In this tutorial, we will use the `lynx` dataset as an example, which
+can be accessed directly from R. Let’s load the dataset and visualize
+it:
+
+```{r}
+data <- data.frame(year = seq(1821, 1934, by = 1), y = as.numeric(lynx))
+data$x <- data$year - min(data$year)
+plot(lynx)
+```
+
+Based on a visual examination of the dataset, we can observe an obvious
+10-year quasi-periodic behavior in the lynx count with evolving
+amplitudes over time. Therefore, we will consider fitting the following
+sGP model:
+
+$$
+\begin{aligned}
+  y_i|\lambda_i &\sim \text{Poisson}(\lambda_i) ,\\
+  \log(\lambda_i) &= \eta_i = \beta_0 + g(x_i) + \xi_i,\\
+  g &\sim \text{sGP} \bigg(a = \frac{2\pi}{10}, \sigma\bigg),\\
+  \xi_i &\sim N(0,\sigma_\xi).
+\end{aligned}
+$$
+
+Here, each $y_i$ represents the lynx count, $x_i$ represents the number
+of years since 1821, and $\xi_i$ is an observation-level random
+intercept to account for overdispersion effect.
+
+
+## Prior Elicitation:
+
+To specify the priors for the sGP boundary conditions and the intercept
+parameter, we assume independent normal priors with mean 0 and variance
+1000. For the overdispersion parameter $\sigma_\xi$, we assign an
+exponential prior with $P(\sigma_\xi > 1) = 0.01$.
+
+To determine the prior for the standard deviation parameter $\sigma$ of
+the sGP, we employ the concept of predictive standard deviation (PSD).
+We start with an exponential prior on the 50 years PSD:
+$$P(\sigma(50)>1) = 0.01.$$ To convert this prior to the original
+standard deviation parameter $\sigma$, we use the `compute_d_step_sGPsd`
+function from the `sGPfit` package:
+
+```{r}
+prior_PSD <- list(u = 1, alpha = 0.01)
+prior_SD <- BayesGP::prior_conversion_sgp(d = 50, prior = prior_PSD, a = 2*pi/10)
+```
+
+ 
+## Model Fitting:
+
+To fit the sGP model with BayesGP, specify `model = "sGP"`, and then specify the frequency parameter `a` and the number of sB spline basis used to approximate `k`.
+
+```{r}
+mod <- model_fit(formula = y ~ f(x = year, 
+                                    model = "sGP", 
+                                    a = 2*pi/10, k = 30,
+                                    sd.prior = list(prior = "exp", param = prior_SD, h = 2)) + 
+                               f(x = x, 
+                                    model = "IID", 
+                                    sd.prior = list(prior = "exp", param = 0.5)),
+                   
+                 family = "Poisson",
+                 data = data,
+                 method = "aghq")
+```
+
+The fitted sGP model is presented below:
+
+```{r}
+summary(mod)
+```
+
+We can similarly use `predict` to evaluate the effect at different locations:
+
+```{r}
+pred_sGP <- predict(mod, variable = "year", newdata = data.frame(year = seq(min(data$year), max(data$year), by = 0.1)))
+plot(mean ~ year, data = pred_sGP, type = 'l', col = 'black')
+lines(q0.025 ~ year, data = pred_sGP, lty = 'dashed', col = 'grey')
+lines(q0.975 ~ year, data = pred_sGP, lty = 'dashed', col = 'grey')
+```
+
+```{r}
+mod <- model_fit(formula = y ~ f(x = year, 
+                                    model = "sGP", 
+                                    a = 2*pi/10, k = 30,
+                                    sd.prior = list(prior = "exp", param = prior_SD, h = 2),
+                                    boundary.prior = list(prec = c(Inf, Inf))) + 
+                               f(x = x, 
+                                    model = "IID", 
+                                    sd.prior = list(prior = "exp", param = 0.5)),
+                   
+                 family = "Poisson",
+                 data = data,
+                 method = "aghq")
+par(oldpar)
+```
+
+
+
