@@ -595,7 +595,7 @@ get_default_option_list_MCMC <- function(option_list = list()){
 custom_template <- function(setup = NULL, log_likelihood = NULL, log_prior = NULL, compile_template = FALSE){
   template_path <- system.file("extsrc", "BayesGP.cpp", package = "BayesGP")
   file_content <- readLines(template_path)
-  if(!is.null(SETUP)){
+  if(!is.null(setup)){
     start_line = which(file_content == "  // START OF YOUR SETUP")
     end_line = which(file_content == "  // END OF YOUR SETUP")
     if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
@@ -605,22 +605,22 @@ custom_template <- function(setup = NULL, log_likelihood = NULL, log_prior = NUL
       warning("Markers not found or in incorrect order")
     }
   }
-  if(!is.null(LOG_LIKELIHOOD)){
+  if(!is.null(log_likelihood)){
     start_line = which(file_content == "    // START OF YOUR LOG_LIKELIHOOD: ll")
     end_line = which(file_content == "    // END OF YOUR LOG_LIKELIHOOD")
     if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
       # Replace the content
-      file_content <- c(file_content[1:(start_line)], LOG_LIKELIHOOD, file_content[(end_line+1):length(file_content)])
+      file_content <- c(file_content[1:(start_line)], log_likelihood, file_content[(end_line+1):length(file_content)])
     } else {
       warning("Markers not found or in incorrect order")
     }
   }
-  if(!is.null(LOG_PRIOR)){
+  if(!is.null(log_prior)){
     start_line = which(file_content == "  // START OF YOUR LOG_PRIOR: lpT")
     end_line = which(file_content == "  // END OF YOUR LOG_PRIOR")
     if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
       # Replace the content
-      file_content <- c(file_content[1:(start_line)], LOG_PRIOR, file_content[(end_line+1):length(file_content)])
+      file_content <- c(file_content[1:(start_line)], log_prior, file_content[(end_line+1):length(file_content)])
     } else {
       warning("Markers not found or in incorrect order")
     }
