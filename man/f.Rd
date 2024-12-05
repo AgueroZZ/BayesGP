@@ -9,7 +9,7 @@ f(
   model = "iid",
   sd.prior = NULL,
   boundary.prior = NULL,
-  initial_location = c("middle", "left", "right")
+  initial_location = c("median", "min", "max")
 )
 }
 \arguments{

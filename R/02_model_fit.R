@@ -512,17 +512,17 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         initial_location <- mean(region)
       }
       if (!is.numeric(initial_location)){
-        if (initial_location == "middle") {
+        if (initial_location == "middle" || initial_location == "mean") {
           initial_location <- mean(region)
         }
-        else if (initial_location == "left") {
+        else if (initial_location == "left" || initial_location == "min") {
           initial_location <- min(region)
         }
-        else if (initial_location == "right") {
+        else if (initial_location == "right" || initial_location == "max") {
           initial_location <- max(region)
         }
         else{
-          stop("initial_location should be either numeric or one of 'left', 'right', 'middle'.")
+          stop("initial_location should be either numeric or one of 'min' (or `left`), `max` (or 'right'), `mean` (or 'middle').")
         }
       }
       # If the user does not specify knots, compute knots with
@@ -653,11 +653,11 @@ model_fit <- function(formula, data, method = "aghq", family = "gaussian", contr
         initial_location <- min(region)
       }
       if (!is.numeric(initial_location)){
-        if (initial_location == "left") {
+        if (initial_location == "left" || initial_location == "min") {
           initial_location <- min(region)
         }
         else{
-          stop("initial_location should be either numeric or one of 'left', 'right', 'middle'.")
+          stop("initial_location should be either numeric or one of 'min' (or `left`), `max` (or 'right'), `mean` (or 'middle').")
         }
       }
       initialized_smoothing_var <- data[[smoothing_var]] - initial_location

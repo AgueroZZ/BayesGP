@@ -4,12 +4,14 @@
 \alias{sample_fixed_effect}
 \title{Extract the posterior samples from the fitted model for the target fixed variables.}
 \usage{
-sample_fixed_effect(model_fit, variables)
+sample_fixed_effect(model_fit, variables, M = NULL)
 }
 \arguments{
 \item{model_fit}{The result from model_fit().}
 
 \item{variables}{A vector of names of the target fixed variables to sample.}
+
+\item{M}{The number of samples to draw from the posterior distribution.}
 }
 \value{
 A matrix with columns being the posterior samples of the target fixed effect variables.

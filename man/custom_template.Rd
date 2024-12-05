@@ -5,21 +5,21 @@
 \title{Custom Template Function}
 \usage{
 custom_template(
-  SETUP = NULL,
-  LOG_LIKELIHOOD = NULL,
-  LOG_PRIOR = NULL,
+  setup = NULL,
+  log_likelihood = NULL,
+  log_prior = NULL,
   compile_template = FALSE
 )
 }
 \arguments{
-\item{SETUP}{A character string or vector containing the 
+\item{setup}{A character string or vector containing the 
 lines of C++ code to be inserted before the computation of log-likelihood.}
 
-\item{LOG_LIKELIHOOD}{A character string or vector containing the 
+\item{log_likelihood}{A character string or vector containing the 
 lines of C++ code to be inserted in the log-likelihood section of 
 the template. Should be NULL if no changes are to be made to this section.}
 
-\item{LOG_PRIOR}{A character string or vector containing the 
+\item{log_prior}{A character string or vector containing the 
 lines of C++ code to be inserted in the log-prior (of the SD parameter) section of 
 the template. Should be NULL if no changes are to be made to this section.}
 

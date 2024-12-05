@@ -18,8 +18,14 @@
 - Plot now produce multiple figures of both the smoothing results and the SD parameters, which could be proceeded by pressing "next".
 
 
+# BayesGP 0.1.4 (2024-12-03)
 
-
+* Minor changes:
+- The initial location in `f` now could also support input of `mean`, `min` and `max`.
+- Update the function `sample_fixed_effect` to accept an input of `M`, denoting the number of posterior samples to take.
+- Update the method `plot`, to accept an argument of `select`, which selects which variable to show in the plot.
+- Create functions `sample_sd` that is used to extract posterior samples of the sd parameter, as well as its subsequent wrapper function `para_samps` which extracts posterior samples of any parameter.
+- `custom_template` now takes input in lower case rather than in upper case.
 
 
 

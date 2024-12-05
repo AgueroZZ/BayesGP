@@ -6,7 +6,7 @@
 #' @param initial_location A character/number that specifies the initial location of the smoothing variable.
 #' @return A call object that can be used in the model_fit formula to indicate a smooth term or random effect.
 #' @export
-f <- function(smoothing_var, model = "iid", sd.prior = NULL, boundary.prior = NULL, initial_location = c("middle", "left", "right")) {
+f <- function(smoothing_var, model = "iid", sd.prior = NULL, boundary.prior = NULL, initial_location = c("median", "min", "max")) {
   # Capture the full call
   mc <- match.call(expand.dots = TRUE)
   
@@ -579,12 +579,12 @@ get_default_option_list_MCMC <- function(option_list = list()){
 #' log-likelihood as well as the log-prior of the SD parameter in the template.
 #' 
 #' 
-#' @param SETUP A character string or vector containing the 
+#' @param setup A character string or vector containing the 
 #'   lines of C++ code to be inserted before the computation of log-likelihood.
-#' @param LOG_LIKELIHOOD A character string or vector containing the 
+#' @param log_likelihood A character string or vector containing the 
 #'   lines of C++ code to be inserted in the log-likelihood section of 
 #'   the template. Should be NULL if no changes are to be made to this section.
-#' @param LOG_PRIOR A character string or vector containing the 
+#' @param log_prior A character string or vector containing the 
 #'   lines of C++ code to be inserted in the log-prior (of the SD parameter) section of 
 #'   the template. Should be NULL if no changes are to be made to this section.
 #' @param compile_template A indicator of whether the new template should be compiled. default is FALSE.
@@ -592,7 +592,7 @@ get_default_option_list_MCMC <- function(option_list = list()){
 #'   containing the compiled custom C++ code.
 #'
 #' @export
-custom_template <- function(SETUP = NULL, LOG_LIKELIHOOD = NULL, LOG_PRIOR = NULL, compile_template = FALSE){
+custom_template <- function(setup = NULL, log_likelihood = NULL, log_prior = NULL, compile_template = FALSE){
   template_path <- system.file("extsrc", "BayesGP.cpp", package = "BayesGP")
   file_content <- readLines(template_path)
   if(!is.null(SETUP)){

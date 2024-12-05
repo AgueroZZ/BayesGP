@@ -119,12 +119,14 @@ predict.FitResult <- function(object, newdata = NULL, variable, deriv = 0, inclu
 #' @importFrom graphics matplot par title
 #' @importFrom methods new is
 #' @export
-plot.FitResult <- function(x, ...) {
+plot.FitResult <- function(x, select = NULL, ...) {
   object <- x
   oldpar <- par(no.readonly = TRUE) 
   on.exit(par(oldpar))  # Reset graphical parameters on exit
-  par(ask = TRUE)
   
+  if(is.null(select)){
+    par(ask = TRUE)
+    
   ### Step 1: predict with newdata = NULL
   for (instance in object$instances) { ## for each variable in model_fit
     if (methods::is(instance, "iwp")) {
@@ -157,6 +159,45 @@ plot.FitResult <- function(x, ...) {
     title(main = paste("Posterior Density of (P)SD: ", component, sep = ""))
   }
   par(ask = FALSE)
+  }
+  
+  else{
+    all_smoothing_var <- as.character(c(lapply(object$instances, function(x) x@smoothing_var)))
+    if(select %in% all_smoothing_var){
+      which.select <- which(all_smoothing_var == select)
+      instance <- object$instances[[which.select]]
+      if (methods::is(instance, "iwp")) {
+        predict_result <- predict.FitResult(object, variable = as.character(instance@smoothing_var))
+        matplot(
+          x = predict_result[,1], y = predict_result[, c("q0.5", "q0.025", "q0.975")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
+          col = "black", type = "l",
+          ylab = "effect", xlab = as.character(instance@smoothing_var)
+        )
+      }
+      if (methods::is(instance, "sgp")) {
+        predict_result <- predict.FitResult(object, variable = as.character(instance@smoothing_var))
+        matplot(
+          x = predict_result[,1], y = predict_result[, c("q0.5", "q0.025", "q0.975")], lty = c(1, 2, 2), lwd = c(2, 1, 1),
+          col = "black", type = "l",
+          ylab = "effect", xlab = as.character(instance@smoothing_var)
+        )
+      }
+    }
+    
+    else if(select %in% names(object$fixed_samp_indexes)){
+      post_dens <- para_density(object = object, variables = select)[[select]]
+      plot(x = post_dens[,1], y = post_dens[,2], type = "l", lwd = 2, col = "black", xlab = select, ylab = "Density")
+    }
+    
+    else if(select == "family"){
+      sd_plot(object = object, component = NULL)
+    }
+    
+    else{
+      sd_plot(object = object, component = select)
+    }
+    
+  }
 }
 
 
@@ -164,15 +205,86 @@ plot.FitResult <- function(x, ...) {
 #' 
 #' @param model_fit The result from model_fit().
 #' @param variables A vector of names of the target fixed variables to sample.
+#' @param M The number of samples to draw from the posterior distribution.
 #' @return A matrix with columns being the posterior samples of the target fixed effect variables.
 #' @export
-sample_fixed_effect <- function(model_fit, variables){
+sample_fixed_effect <- function(model_fit, variables, M = NULL){
+  if(is.null(M)){
+    M <- ncol(model_fit$samps$samps)
+  }
   samps <- model_fit$samps$samps
   index <- model_fit$fixed_samp_indexes[variables]
   selected_samps <- t(samps[unlist(index), ,drop = FALSE])
   colnames(selected_samps) <- variables
+  if(M == ncol(selected_samps)){
+    return(selected_samps)
+  }else{
+    return(selected_samps[sample(1:nrow(selected_samps), M, replace = TRUE), ])
+  }
+} 
+
+
+#' Extract the posterior samples from the fitted model for the target standard deviation.
+#' 
+#' @param model_fit The result from model_fit().
+#' @param variables A vector of names of the target standard deviation to sample.
+#' @param M The number of samples to draw from the posterior distribution.
+#' @param h The unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
+#' @return A matrix with columns being the posterior samples of the target sd variables.
+#' @export
+sample_sd <- function(model_fit, variables, M = NULL, h = NULL){
+  if(is.null(M)){
+    M <- ncol(model_fit$samps$samps)
+  }
+  selected_samps <- matrix(0, nrow = M, ncol = length(variables))
+  
+  for (j in 1:length(variables)) {
+    variable = variables[j]
+    post_dens <- sd_density(object = model_fit, component = variable, h = h)
+    if("PSD" %in% colnames(post_dens)){
+      post_dens <- post_dens[, c("PSD", "post.PSD")]
+    }else{
+      post_dens <- post_dens[, c("SD", "post")]
+    }
+    # convert density to probability for sampling
+    post_dens[,2] <- post_dens[,2] / sum(post_dens[,2])
+    selected_samps[,j] <- sample(post_dens[,1], size = M, replace = TRUE, prob = post_dens[,2])
+  }
+  
+  colnames(selected_samps) <- variables
   return(selected_samps)
 } 
+
+
+#' Extract the posterior samples from the fitted model for the target parameters.
+#' 
+#' @param model_fit The result from model_fit().
+#' @param variables A vector of names of the target parameters to sample.
+#' @param M The number of samples to draw from the posterior distribution.
+#' @param h The unit of predictive step to consider, by default is set to `NULL`, indicating the result is using the same `h` as in the model fitting.
+#' @return A matrix with columns being the posterior samples of the target parameters.
+#' @export
+para_samps <- function(model_fit, variables, M = NULL, h = NULL){
+  if(is.null(M)){
+    M <- ncol(model_fit$samps$samps)
+  }
+  post_samps <- matrix(0, nrow = M, ncol = length(variables))
+  for (j in 1:length(variables)){
+    variable = variables[j]
+    if(variable %in% names(model_fit$fixed_samp_indexes)){
+      post_samps[,j] <- sample_fixed_effect(model_fit, variables = variable, M = M)
+    }else if(variable %in% names(model_fit$random_samp_indexes)){
+      post_samps[,j] <- sample_sd(model_fit, variables = variable, M = M, h = h)
+    }else{
+      stop("The specified variable cannot be found in the fitted model, please check the name.")
+    }
+  }
+  colnames(post_samps) <- variables
+  return(post_samps)
+} 
+
+
+
 
 
 #' Computing the posterior samples of the function or its derivative using the posterior samples
@@ -497,10 +609,11 @@ sd_plot <- function(object, component = NULL, h = NULL, theta_logprior = NULL){
 #' Obtain the posterior and prior density of all the parameters in the fitted model
 #' 
 #' @param object The fitted object from the function `model_fit`.
+#' @param variables The name of the parameter that you want to show the posterior density. By default this is `NULL`, indicating all the parameters are of interest.
 #' @importFrom stats density
 #' @return A list of data frames, each data frame contains the posterior density of the corresponding parameter.
 #' @export
-para_density <- function(object){
+para_density <- function(object, variables = NULL){
   result_list <- list()
   for (fixed_name in names(object$fixed_samp_indexes)) {
     samps <- sample_fixed_effect(object, variables = fixed_name)
@@ -514,6 +627,10 @@ para_density <- function(object){
   
   if(object$family == "gaussian"){
     result_list[["family_sd"]] <- sd_density(object = object)
+  }
+  
+  if(!is.null(variables)){
+    result_list <- result_list[variables]
   }
   
   return(result_list)
